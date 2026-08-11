@@ -11,6 +11,10 @@ import {
 } from "react";
 import type { ChatGateMessage, ChatGateMessageType } from "@chatgate/core";
 import { useChatGate } from "./context.js";
+import {
+  createChatGateThemeVariables,
+  type ChatGateTheme,
+} from "./theme.js";
 import { useChatGateConversation } from "./use-conversation.js";
 
 export interface ChatGateConversationProps {
@@ -26,6 +30,7 @@ export interface ChatGateConversationProps {
   maxFileSizeBytes?: number;
   renderMessage?: (message: ChatGateMessage, own: boolean) => ReactNode;
   onBack?: () => void;
+  theme?: ChatGateTheme;
 }
 
 type IconName = "attach" | "back" | "chat" | "file" | "microphone" | "more" | "send";
@@ -67,21 +72,21 @@ const componentCss = `
   [data-chatgate-conversation] button:focus-visible,
   [data-chatgate-conversation] input:focus-visible,
   [data-chatgate-conversation] summary:focus-visible {
-    outline: 3px solid rgba(37, 99, 235, .24);
+    outline: 3px solid color-mix(in srgb, var(--cg-accent, #2563eb) 24%, transparent);
     outline-offset: 2px;
   }
   [data-chatgate-conversation] .cg-message-menu summary { list-style: none; }
   [data-chatgate-conversation] .cg-message-menu summary::-webkit-details-marker { display: none; }
   [data-chatgate-conversation] .cg-message-menu[open] > summary {
     background: #e8effb !important;
-    color: #1d4ed8 !important;
+    color: var(--cg-accent-hover, #1d4ed8) !important;
   }
   [data-chatgate-conversation] .cg-message-menu__panel {
     animation: cg-menu-in 130ms ease-out;
   }
   [data-chatgate-conversation] .cg-message-action:hover,
   [data-chatgate-conversation] .cg-tool-button:hover:not(:disabled) { background: #eff4fb !important; }
-  [data-chatgate-conversation] .cg-send-button:hover:not(:disabled) { background: #1d4ed8 !important; }
+  [data-chatgate-conversation] .cg-send-button:hover:not(:disabled) { background: var(--cg-accent-hover, #1d4ed8) !important; }
   [data-chatgate-conversation] button:disabled { cursor: not-allowed !important; opacity: .52; }
   [data-chatgate-conversation] .cg-message-image { transition: transform 160ms ease; }
   [data-chatgate-conversation] .cg-message-image:hover { transform: scale(1.012); }
@@ -113,12 +118,12 @@ const styles: Record<string, CSSProperties> = {
     height: "min(680px, calc(100dvh - 32px))",
     maxHeight: 760,
     overflow: "hidden",
-    border: "1px solid #d6e0ee",
-    borderRadius: 20,
-    background: "#fff",
+    border: "1px solid var(--cg-border, #d6e0ee)",
+    borderRadius: "var(--cg-radius, 20px)",
+    background: "var(--cg-surface, #fff)",
     boxShadow: "0 18px 48px rgba(30, 64, 175, .10)",
-    color: "#14213d",
-    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    color: "var(--cg-text, #14213d)",
+    fontFamily: "var(--cg-font, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif)",
   },
   header: {
     display: "flex",
@@ -127,8 +132,8 @@ const styles: Record<string, CSSProperties> = {
     gap: 16,
     minHeight: 72,
     padding: "14px 18px",
-    borderBottom: "1px solid #e5ebf4",
-    background: "rgba(255,255,255,.96)",
+    borderBottom: "1px solid var(--cg-border, #e5ebf4)",
+    background: "var(--cg-surface, #fff)",
   },
   backButton: {
     display: "grid",
@@ -150,13 +155,13 @@ const styles: Record<string, CSSProperties> = {
     height: 42,
     placeItems: "center",
     borderRadius: 14,
-    background: "linear-gradient(145deg, #2563eb, #1d4ed8)",
+    background: "var(--cg-accent, #2563eb)",
     boxShadow: "0 8px 18px rgba(37, 99, 235, .24)",
     color: "#fff",
   },
   identityText: { display: "flex", minWidth: 0, flexDirection: "column", gap: 2 },
   title: { overflow: "hidden", fontSize: 15, fontWeight: 760, lineHeight: 1.3, textOverflow: "ellipsis", whiteSpace: "nowrap" },
-  subtitle: { color: "#64748b", fontSize: 11.5, lineHeight: 1.4 },
+  subtitle: { color: "var(--cg-muted, #64748b)", fontSize: 11.5, lineHeight: 1.4 },
   presence: {
     display: "inline-flex",
     flex: "0 0 auto",
@@ -179,7 +184,7 @@ const styles: Record<string, CSSProperties> = {
     gap: 8,
     overflowY: "auto",
     padding: "20px 18px",
-    background: "linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%)",
+    background: "var(--cg-canvas, linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%))",
     scrollbarGutter: "stable",
   },
   messageRow: { display: "flex", width: "fit-content", maxWidth: "min(78%, 460px)", flexDirection: "column", alignItems: "flex-start", gap: 3 },
@@ -198,9 +203,9 @@ const styles: Record<string, CSSProperties> = {
     whiteSpace: "pre-wrap",
   },
   bubbleOwn: {
-    borderColor: "#2563eb",
+    borderColor: "var(--cg-accent, #2563eb)",
     borderRadius: "17px 17px 6px 17px",
-    background: "linear-gradient(145deg, #2f6dea, #2563eb)",
+    background: "var(--cg-accent, #2563eb)",
     boxShadow: "0 7px 18px rgba(37, 99, 235, .19)",
     color: "#fff",
   },
@@ -236,7 +241,7 @@ const styles: Record<string, CSSProperties> = {
   cancelReply: { padding: "3px 7px", border: 0, borderRadius: 7, background: "transparent", color: "#1d4ed8", fontSize: 11, fontWeight: 750, cursor: "pointer" },
   composerRow: { display: "flex", alignItems: "center", gap: 5, minHeight: 50, padding: 4, border: "1px solid #d4deeb", borderRadius: 16, background: "#f8fafc", boxShadow: "0 4px 14px rgba(15,23,42,.04)" },
   input: { minWidth: 0, height: 40, flex: 1, padding: "0 8px", border: 0, outline: 0, background: "transparent", color: "#172033", fontSize: 13.5 },
-  sendButton: { display: "inline-flex", height: 40, alignItems: "center", justifyContent: "center", gap: 7, padding: "0 13px", border: 0, borderRadius: 12, background: "#2563eb", color: "#fff", boxShadow: "0 6px 15px rgba(37,99,235,.22)", fontSize: 12.5, fontWeight: 760, cursor: "pointer" },
+  sendButton: { display: "inline-flex", height: 40, alignItems: "center", justifyContent: "center", gap: 7, padding: "0 13px", border: 0, borderRadius: 12, background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", boxShadow: "0 6px 15px rgba(37,99,235,.22)", fontSize: 12.5, fontWeight: 760, cursor: "pointer" },
   toolButton: { display: "grid", flex: "0 0 auto", width: 40, height: 40, padding: 0, placeItems: "center", border: 0, borderRadius: 11, background: "transparent", color: "#52627a", cursor: "pointer" },
   composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "#94a3b8", fontSize: 9.5, fontWeight: 600 },
 };
@@ -374,6 +379,7 @@ export function ChatGateConversation({
   maxFileSizeBytes = 25 * 1024 * 1024,
   renderMessage,
   onBack,
+  theme,
 }: ChatGateConversationProps) {
   const { client } = useChatGate();
   const { controller, state } = useChatGateConversation(conversationId);
@@ -497,7 +503,7 @@ export function ChatGateConversation({
     <section
       data-chatgate-conversation
       className={className}
-      style={{ ...styles.root, ...style }}
+      style={{ ...styles.root, ...createChatGateThemeVariables(theme), ...style }}
       aria-label={title}
     >
       <style>{componentCss}</style>

@@ -25,11 +25,35 @@ website's exact origin in ChatGate Developer Access before connecting.
 
 `<ChatGate />` includes history, realtime messages, text, image/file uploads,
 browser voice recording, replies, reactions, edit/delete, typing, presence, and
-read receipts. Its first screen lists all existing merchant conversations and
-unread counts, plus every available business the customer can start a chat
-with. Selecting a merchant opens that thread; the header back button returns to
-the list. Appearance and composer behavior can be changed with props such as
-`title`, `className`, `style`, `allowAttachments`, and `allowVoice`.
+read receipts. On desktop it renders a two-pane messenger with a searchable DM
+history sidebar and the selected conversation detail. Narrow containers switch
+to list/detail navigation automatically. The sidebar includes unread counts,
+latest-message previews, timestamps, and every available business the customer
+can start a chat with.
+
+Customize branding, sizing, wording, and composer behavior with typed props:
+
+```tsx
+<ChatGate
+  publicKey="cg_pub_..."
+  organizationId="your-organization-id"
+  userId="customer-1234"
+  title="Acme Care"
+  sidebarWidth={340}
+  labels={{ conversations: "Your chats", businesses: "New message" }}
+  theme={{
+    accentColor: "#7c3aed",
+    accentHoverColor: "#6d28d9",
+    surfaceColor: "#ffffff",
+    canvasColor: "#f8fafc",
+    borderRadius: 24,
+  }}
+  style={{ width: "100%", height: 680 }}
+/>
+```
+
+`className`, `style`, `allowAttachments`, `allowVoice`,
+`showBusinessDirectory`, and `renderMessage` provide additional control.
 
 Set `showConversationList={false}` to preserve a single-thread view, or pass a
 specific `conversationId`. Advanced applications can import

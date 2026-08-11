@@ -445,6 +445,7 @@ test("conversation list controller loads merchants, switches conversations, and 
     },
   });
   assert.equal(controller.getSnapshot().conversations[0].unreadCount, 1);
+  assert.equal(controller.getSnapshot().conversations[0].lastMessage.content, "New merchant reply");
 
   controller.selectConversation("conversation-1");
   assert.equal(controller.getSnapshot().selectedConversationId, "conversation-1");

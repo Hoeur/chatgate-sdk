@@ -8,9 +8,11 @@ Publishable packages:
 - `@chatgate/react-native` — React Native and Expo provider, hooks, native UI,
   AppState handling, and media/push adapter contracts.
 
-Every packaged UI includes the customer home view from the embed script: all
-existing merchant conversations, unread counts, available businesses, merchant
-switching, and back navigation into the list.
+The React/Next.js UI includes a customizable, responsive two-pane customer
+messenger: searchable DM history with unread counts and latest-message previews
+in the sidebar, plus the complete selected conversation detail. Every adapter
+also exposes existing merchant conversations, available businesses, merchant
+switching, and responsive list/detail navigation.
 
 ```bash
 npm install
@@ -26,7 +28,7 @@ application server; every client receives only a short-lived visitor session.
 ## Working sample
 
 [`examples/nextjs`](./examples/nextjs) is a standalone consumer project using
-the local 0.3 packages before publication. It is configured for the live
+the local 0.5 packages before publication. It is configured for the live
 ChatGate publishable-key flow and exercises visitor session creation, history,
 text, image/file upload, browser voice recording, replies, reactions, typing,
 presence, read receipts, Socket.IO acknowledgement, and merchant replies.

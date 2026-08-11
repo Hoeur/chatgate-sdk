@@ -48,10 +48,18 @@ test("renders the packaged conversation navigator during SSR", () => {
     React.createElement(
       ChatGateProvider,
       { client: fakeClient(), autoStart: false },
-      React.createElement(ChatGateMessenger, { title: "Merchant support" }),
+      React.createElement(ChatGateMessenger, {
+        title: "Merchant support",
+        sidebarWidth: 300,
+        labels: { searchPlaceholder: "Search inbox" },
+        theme: { accentColor: "#7c3aed", borderRadius: 24 },
+      }),
     ),
   );
 
   assert.match(html, /Merchant support/);
   assert.match(html, /No conversations yet/);
+  assert.match(html, /Search inbox/);
+  assert.match(html, /--cg-accent:#7c3aed/);
+  assert.match(html, /Select a conversation/);
 });

@@ -87,6 +87,8 @@ export interface ChatGateConversation {
   businessUnit?: ChatGateBusinessUnit | null;
   unreadCount?: number;
   messageCount?: number;
+  /** Most recent DM, included by customer conversation-list responses. */
+  lastMessage?: ChatGateMessage | null;
 }
 
 export interface ChatGateConversationThread extends ChatGateConversation {

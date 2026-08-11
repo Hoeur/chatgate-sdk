@@ -21,5 +21,7 @@ export {
 } from "./conversation.js";
 export {
   ChatGateMessenger,
+  type ChatGateMessengerLabels,
   type ChatGateMessengerProps,
 } from "./messenger.js";
+export { type ChatGateTheme } from "./theme.js";

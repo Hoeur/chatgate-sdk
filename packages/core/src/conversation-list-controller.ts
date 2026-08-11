@@ -44,9 +44,17 @@ function updateConversationFromMessage(
   return {
     ...conversation,
     lastMessageAt: message.createdAt,
+    lastMessage: message,
     messageCount: (conversation.messageCount ?? 0) + 1,
     unreadCount: isIncoming && !isOpen ? (conversation.unreadCount ?? 0) + 1 : 0,
   };
+}
+
+function newestFirst(
+  left: ChatGateConversation,
+  right: ChatGateConversation,
+): number {
+  return Date.parse(right.lastMessageAt) - Date.parse(left.lastMessageAt);
 }
 
 export class ChatGateConversationListController {
@@ -92,14 +100,16 @@ export class ChatGateConversationListController {
           return;
         }
         this.patch({
-          conversations: this.state.conversations.map((conversation) =>
-            updateConversationFromMessage(
-              conversation,
-              message,
-              this.client.session?.userId,
-              this.state.selectedConversationId,
-            ),
-          ),
+          conversations: this.state.conversations
+            .map((conversation) =>
+              updateConversationFromMessage(
+                conversation,
+                message,
+                this.client.session?.userId,
+                this.state.selectedConversationId,
+              ),
+            )
+            .sort(newestFirst),
         });
       }),
       this.client.on("resync", () => {

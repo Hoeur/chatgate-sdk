@@ -1,6 +1,6 @@
 import { ChatGate } from "@chatgate/react";
 
-const installedPackages = ["@chatgate/core@0.3.0", "@chatgate/react@0.3.0"];
+const installedPackages = ["@chatgate/core@0.5.0", "@chatgate/react@0.5.0"];
 
 export default function HomePage() {
   return (
@@ -26,6 +26,9 @@ export default function HomePage() {
           userId="customer-1234"
           userName="Customer"
           title="ChatGate support"
+          sidebarWidth={310}
+          labels={{ conversations: "Chat history", businesses: "New conversation" }}
+          theme={{ accentColor: "#2563eb", borderRadius: 22 }}
         />
       </section>
     </main>
