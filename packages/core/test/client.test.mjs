@@ -4,6 +4,7 @@ import {
   ChatGateError,
   createChatGateClient,
   createChatGateConversationController,
+  createChatGateConversationListController,
 } from "../dist/index.js";
 
 function response(status, body) {
@@ -380,6 +381,79 @@ test("conversation controller loads, deduplicates, and sends messages", async ()
 
   assert.equal(controller.getSnapshot().messages.length, 1);
   assert.equal(controller.getSnapshot().messages[0].content, "Controller message");
+  controller.stop();
+  client.stop();
+});
+
+test("conversation list controller loads merchants, switches conversations, and tracks unread messages", async () => {
+  const socket = new FakeSocket();
+  const contexts = [];
+  let activeConversationId = "conversation-1";
+  const businessUnits = [
+    { id: "unit-1", externalId: "merchant-one", name: "Merchant One", type: "MERCHANT" },
+    { id: "unit-2", externalId: "merchant-two", name: "Merchant Two", type: "MERCHANT" },
+  ];
+  const conversations = [
+    {
+      id: "conversation-1",
+      status: "OPEN",
+      createdAt: new Date(0).toISOString(),
+      lastMessageAt: new Date(0).toISOString(),
+      unreadCount: 0,
+      messageCount: 1,
+      businessUnit: businessUnits[0],
+    },
+    {
+      id: "conversation-2",
+      status: "OPEN",
+      createdAt: new Date(0).toISOString(),
+      lastMessageAt: new Date(0).toISOString(),
+      unreadCount: 0,
+      messageCount: 0,
+      businessUnit: businessUnits[1],
+    },
+  ];
+  const client = createChatGateClient({
+    baseUrl: "https://api.example.test",
+    sessionProvider: async (context) => {
+      contexts.push(context);
+      if (context.businessUnitExternalId === "merchant-two") activeConversationId = "conversation-2";
+      return { ...session, conversationId: activeConversationId, businessUnits };
+    },
+    socketFactory: () => socket,
+    fetch: async (url) => url.endsWith("/inbox/conversations")
+      ? response(200, conversations)
+      : response(200, {}),
+  });
+  await client.start();
+  const controller = createChatGateConversationListController(client);
+  await controller.start();
+
+  assert.equal(controller.getSnapshot().conversations.length, 2);
+  assert.equal(controller.getSnapshot().businessUnits[1].name, "Merchant Two");
+
+  socket.trigger("new_dm", {
+    dm: {
+      id: "message-list-1",
+      content: "New merchant reply",
+      messageType: "text",
+      senderId: "agent-1",
+      receiverId: "visitor-1",
+      inboxConversationId: "conversation-1",
+      read: false,
+      createdAt: new Date(1_000).toISOString(),
+    },
+  });
+  assert.equal(controller.getSnapshot().conversations[0].unreadCount, 1);
+
+  controller.selectConversation("conversation-1");
+  assert.equal(controller.getSnapshot().selectedConversationId, "conversation-1");
+  await controller.selectBusinessUnit("merchant-two");
+  assert.equal(controller.getSnapshot().selectedConversationId, "conversation-2");
+  assert.equal(contexts.at(-1).businessUnitExternalId, "merchant-two");
+
+  await controller.showList();
+  assert.equal(controller.getSnapshot().selectedConversationId, undefined);
   controller.stop();
   client.stop();
 });

@@ -8,4 +8,9 @@ export {
   useChatGateConversation,
   type UseChatGateConversationResult,
 } from "./use-conversation.js";
+export {
+  useChatGateConversationList,
+  type UseChatGateConversationListResult,
+} from "./use-conversation-list.js";
 export { ChatGateConversation } from "./conversation.js";
+export { ChatGateMessenger } from "./messenger.js";

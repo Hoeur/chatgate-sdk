@@ -37,6 +37,7 @@ export const ChatGateConversation = defineComponent({
     acceptedFileTypes: String,
     maxFileSizeBytes: { type: Number, default: 25 * 1024 * 1024 },
     renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean) => VNodeChild>,
+    onBack: Function as PropType<() => void>,
   },
   setup(props) {
     const client = useChatGate();
@@ -184,8 +185,11 @@ export const ChatGateConversation = defineComponent({
       const online = assigneeId ? state.value.onlineUserIds.includes(assigneeId) : false;
       const typing = state.value.typingUsers[0];
       return h("section", { style: rootStyle, "aria-label": props.title }, [
-        h("header", { style: { display: "flex", justifyContent: "space-between", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700 } }, [
-          props.title,
+        h("header", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "14px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700 } }, [
+          h("span", { style: { display: "flex", alignItems: "center", gap: "8px" } }, [
+            props.onBack ? h("button", { type: "button", "aria-label": "Back to conversations", onClick: props.onBack, style: { width: "34px", height: "34px", border: "1px solid #dbe3ef", borderRadius: "10px", background: "#f8fafc", cursor: "pointer" } }, "‹") : null,
+            props.title,
+          ]),
           h("small", { style: { color: online ? "#15803d" : "#64748b" } }, online ? "Online" : "Support team"),
         ]),
         state.value.error || localError.value

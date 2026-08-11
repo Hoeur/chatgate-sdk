@@ -15,10 +15,12 @@ const client = createChatGateClient({
 createApp(App).use(createChatGatePlugin({ client })).mount("#app");
 ```
 
-Then render `<ChatGateConversation title="Support" />` or use
-`useChatGateConversation()` to build a custom interface.
+Then render `<ChatGateMessenger title="Support" />` for the full merchant list
+and conversation flow. Use `<ChatGateConversation>` for one thread,
+`useChatGateConversationList()` for custom list/detail navigation, or
+`useChatGateConversation()` for a custom conversation interface.
 
 The packaged Vue component supports history, text, images/files, browser voice
 recording, replies, reactions, typing, presence, read receipts, edits/deletes,
-and realtime merchant messages. The composable exposes the same controller for
-custom product UIs.
+realtime merchant messages, all merchant histories, unread counts, available
+businesses, and business-unit switching.

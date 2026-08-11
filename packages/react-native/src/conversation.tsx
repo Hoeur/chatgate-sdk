@@ -24,6 +24,7 @@ export interface ChatGateConversationProps {
   placeholder?: string;
   style?: StyleProp<ViewStyle>;
   mediaAdapter?: ChatGateMediaAdapter;
+  onBack?: () => void;
 }
 
 function messageLabel(message: ChatGateMessage): string {
@@ -38,6 +39,7 @@ export function ChatGateConversation({
   placeholder = "Write a message…",
   style,
   mediaAdapter,
+  onBack,
 }: ChatGateConversationProps) {
   const { client } = useChatGate();
   const { controller, state } = useChatGateConversation(conversationId);
@@ -129,7 +131,14 @@ export function ChatGateConversation({
   return (
     <View style={[styles.root, style]} accessibilityLabel={title}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.headerIdentity}>
+          {onBack ? (
+            <Pressable accessibilityRole="button" accessibilityLabel="Back to conversations" style={styles.backButton} onPress={onBack}>
+              <Text style={styles.backText}>‹</Text>
+            </Pressable>
+          ) : null}
+          <Text style={styles.headerTitle}>{title}</Text>
+        </View>
         <View style={styles.presence}>
           <View style={[styles.presenceDot, online && styles.presenceDotOnline]} />
           <Text style={styles.presenceText}>{online ? "Online" : "Support team"}</Text>
@@ -194,6 +203,9 @@ export function ChatGateConversation({
 const styles = StyleSheet.create({
   root: { flex: 1, minHeight: 360, overflow: "hidden", borderWidth: 1, borderColor: "#dbe3ef", borderRadius: 16, backgroundColor: "#fff" },
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
+  headerIdentity: { minWidth: 0, flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
+  backButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#dbe3ef", borderRadius: 10, backgroundColor: "#f8fafc" },
+  backText: { color: "#334155", fontSize: 24, lineHeight: 26 },
   headerTitle: { color: "#0f172a", fontSize: 16, fontWeight: "700" },
   presence: { flexDirection: "row", alignItems: "center", gap: 6 },
   presenceDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#94a3b8" },

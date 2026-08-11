@@ -25,14 +25,16 @@ export interface ChatGateConversationProps {
   acceptedFileTypes?: string;
   maxFileSizeBytes?: number;
   renderMessage?: (message: ChatGateMessage, own: boolean) => ReactNode;
+  onBack?: () => void;
 }
 
-type IconName = "attach" | "chat" | "file" | "microphone" | "more" | "send";
+type IconName = "attach" | "back" | "chat" | "file" | "microphone" | "more" | "send";
 
 const QUICK_REACTIONS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}"] as const;
 
 const iconPaths: Record<IconName, ReactNode> = {
   attach: <path d="M20.5 11.5 12 20a6 6 0 0 1-8.5-8.5l9-9a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.9-2.8l8.3-8.3" />,
+  back: <><path d="m15 18-6-6 6-6" /><path d="M9 12h10" /></>,
   chat: <><path d="M20 15a3 3 0 0 1-3 3H9l-5 3V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3Z" /><path d="M8 9h8M8 13h5" /></>,
   file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></>,
   microphone: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" /></>,
@@ -127,6 +129,18 @@ const styles: Record<string, CSSProperties> = {
     padding: "14px 18px",
     borderBottom: "1px solid #e5ebf4",
     background: "rgba(255,255,255,.96)",
+  },
+  backButton: {
+    display: "grid",
+    flex: "0 0 auto",
+    width: 36,
+    height: 36,
+    placeItems: "center",
+    border: "1px solid #dce5f1",
+    borderRadius: 12,
+    background: "#f8fafc",
+    color: "#334155",
+    cursor: "pointer",
   },
   identity: { display: "flex", alignItems: "center", minWidth: 0, gap: 11 },
   avatar: {
@@ -359,6 +373,7 @@ export function ChatGateConversation({
   acceptedFileTypes,
   maxFileSizeBytes = 25 * 1024 * 1024,
   renderMessage,
+  onBack,
 }: ChatGateConversationProps) {
   const { client } = useChatGate();
   const { controller, state } = useChatGateConversation(conversationId);
@@ -488,6 +503,17 @@ export function ChatGateConversation({
       <style>{componentCss}</style>
       <header className="cg-chat-header" style={styles.header}>
         <div style={styles.identity}>
+          {onBack ? (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to conversations"
+              title="Back to conversations"
+              style={styles.backButton}
+            >
+              <Icon name="back" />
+            </button>
+          ) : null}
           <span aria-hidden="true" style={styles.avatar}><Icon name="chat" size={21} /></span>
           <span style={styles.identityText}>
             <span style={styles.title}>{title}</span>

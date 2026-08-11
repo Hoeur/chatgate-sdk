@@ -16,6 +16,8 @@ import { ChatGate } from "@chatgate/react";
 No application API route or manually constructed session provider is required
 for a publishable-key visitor. The library exchanges the key for a short-lived
 session and manages Socket.IO, refresh, history, uploads, and conversation state.
+The first screen lists all of the customer's merchant conversations and
+available businesses, matching the embed-script chat flow.
 
 The publishable key and organization ID are safe browser configuration. Never
 put a `cg_live_` key or embed HMAC secret in client code. A verified signed-in

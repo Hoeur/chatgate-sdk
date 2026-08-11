@@ -138,6 +138,9 @@ provisioning.
 - `on(event, listener)` / `off(event, listener)`
 - `createChatGateConversationController(client)` for framework-neutral reactive
   conversation state, pagination, sending, uploads, deduplication, and resync.
+- `createChatGateConversationListController(client)` for all merchant
+  conversations, unread updates, available business units, list/detail
+  navigation, and `switchBusinessUnit()` session changes.
 
 Supported events are `session`, `connected`, `disconnected`, `connectionError`,
 `embedReady`, `message`, `messageUpdated`, `messageDeleted`,

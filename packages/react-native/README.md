@@ -4,7 +4,7 @@ React Native and Expo bindings for `@chatgate/core`.
 
 ```tsx
 import { createChatGateClient } from "@chatgate/core";
-import { ChatGateConversation, ChatGateProvider } from "@chatgate/react-native";
+import { ChatGateMessenger, ChatGateProvider } from "@chatgate/react-native";
 
 const client = createChatGateClient({
   baseUrl: "https://api.chat-gate.com",
@@ -18,7 +18,7 @@ const client = createChatGateClient({
 export function SupportScreen() {
   return (
     <ChatGateProvider client={client}>
-      <ChatGateConversation mediaAdapter={yourExpoMediaAdapter} />
+      <ChatGateMessenger mediaAdapter={yourExpoMediaAdapter} />
     </ChatGateProvider>
   );
 }
@@ -32,4 +32,5 @@ server.
 The bundled native conversation UI supports history, text, image/file/voice
 assets supplied by the media adapter, replies, reactions, typing, presence, read
 receipts, reconnect/resync, and realtime merchant messages. For custom native
-rendering, `useChatGateConversation()` exposes the complete shared controller.
+rendering, `useChatGateConversationList()` exposes merchant list/detail and
+business switching, while `useChatGateConversation()` exposes one thread.

@@ -3,12 +3,12 @@
 import { useMemo, type ReactNode } from "react";
 import { createChatGateClient } from "@chatgate/core";
 import {
-  ChatGateConversation,
-  type ChatGateConversationProps,
-} from "./conversation.js";
+  ChatGateMessenger,
+  type ChatGateMessengerProps,
+} from "./messenger.js";
 import { ChatGateProvider } from "./provider.js";
 
-export interface ChatGateProps extends ChatGateConversationProps {
+export interface ChatGateProps extends ChatGateMessengerProps {
   publicKey: string;
   organizationId?: string;
   userId?: string;
@@ -65,7 +65,7 @@ export function ChatGate({
 
   return (
     <ChatGateProvider client={client} fallback={fallback}>
-      <ChatGateConversation {...conversationProps} />
+      <ChatGateMessenger {...conversationProps} />
     </ChatGateProvider>
   );
 }

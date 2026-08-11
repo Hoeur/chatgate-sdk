@@ -9,9 +9,17 @@ export {
   type UseChatGateConversationResult,
 } from "./use-conversation.js";
 export {
+  useChatGateConversationList,
+  type UseChatGateConversationListResult,
+} from "./use-conversation-list.js";
+export {
   ChatGateConversation,
   type ChatGateConversationProps,
 } from "./conversation.js";
+export {
+  ChatGateMessenger,
+  type ChatGateMessengerProps,
+} from "./messenger.js";
 export type {
   ChatGateMediaAdapter,
   ChatGateNativeAsset,

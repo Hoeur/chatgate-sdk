@@ -8,6 +8,10 @@ Publishable packages:
 - `@chatgate/react-native` — React Native and Expo provider, hooks, native UI,
   AppState handling, and media/push adapter contracts.
 
+Every packaged UI includes the customer home view from the embed script: all
+existing merchant conversations, unread counts, available businesses, merchant
+switching, and back navigation into the list.
+
 ```bash
 npm install
 npm test

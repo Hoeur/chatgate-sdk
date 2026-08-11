@@ -3,7 +3,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createChatGateClient } from "@chatgate/core";
-import { ChatGate, ChatGateConversation, ChatGateProvider } from "../dist/index.js";
+import { ChatGate, ChatGateConversation, ChatGateMessenger, ChatGateProvider } from "../dist/index.js";
 
 function fakeClient() {
   return createChatGateClient({
@@ -39,5 +39,19 @@ test("renders the one-component publishable-key integration during SSR", () => {
   );
 
   assert.match(html, /Simple support/);
-  assert.match(html, /aria-label="Message"/);
+  assert.match(html, /No conversations yet/);
+  assert.match(html, /conversations/);
+});
+
+test("renders the packaged conversation navigator during SSR", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(
+      ChatGateProvider,
+      { client: fakeClient(), autoStart: false },
+      React.createElement(ChatGateMessenger, { title: "Merchant support" }),
+    ),
+  );
+
+  assert.match(html, /Merchant support/);
+  assert.match(html, /No conversations yet/);
 });
