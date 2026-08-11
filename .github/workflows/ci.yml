@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            examples/nextjs/package-lock.json
+
+      - name: Install SDK dependencies
+        run: npm ci
+
+      - name: Test SDK packages
+        run: npm test
+
+      - name: Type-check SDK packages
+        run: npm run typecheck
+
+      - name: Verify package contents
+        run: npm run pack:check
+
+      - name: Verify release metadata
+        run: npm run release:check
+
+      - name: Install Next.js sample dependencies
+        working-directory: examples/nextjs
+        run: npm ci
+
+      - name: Verify Next.js sample
+        working-directory: examples/nextjs
+        run: npm run verify

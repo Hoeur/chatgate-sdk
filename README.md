@@ -33,3 +33,22 @@ npm install
 npm run verify
 npm run dev
 ```
+
+## Automated CI and npm publishing
+
+GitHub Actions runs the SDK and Next.js sample checks for every pull request and
+push to `main`. Publishing runs when a GitHub Release is published, or when the
+`Publish npm packages` workflow is started manually.
+
+Before the first automated release, add this trusted publisher to each of the
+four `@chatgate/*` packages on npm:
+
+- Organization or user: `Hoeur`
+- Repository: `chatgate-sdk`
+- Workflow filename: `publish.yml`
+- Environment: leave blank
+
+No `NPM_TOKEN` GitHub secret is needed. To publish, update the root and package
+versions, run `npm run release:check`, push the commit, then publish a GitHub
+Release whose tag matches the version, such as `v0.2.0`. A rerun skips package
+versions that already exist on npm.

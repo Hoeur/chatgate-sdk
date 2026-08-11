@@ -2,6 +2,11 @@
   "name": "@chatgate/react",
   "version": "0.2.0",
   "description": "React and Next.js bindings for ChatGate.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hoeur/chatgate-sdk.git",
+    "directory": "packages/react"
+  },
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

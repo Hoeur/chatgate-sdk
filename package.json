@@ -3,6 +3,10 @@
   "version": "0.2.0",
   "private": true,
   "description": "ChatGate JavaScript SDK workspace.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hoeur/chatgate-sdk.git"
+  },
   "workspaces": [
     "packages/*"
   ],
@@ -12,7 +16,8 @@
     "test": "npm run test --workspace @chatgate/core && npm run test:adapters",
     "test:adapters": "npm run test --workspace @chatgate/react --workspace @chatgate/vue --workspace @chatgate/react-native",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "pack:check": "npm run build && npm pack --dry-run --ignore-scripts --workspace @chatgate/core && npm pack --dry-run --ignore-scripts --workspace @chatgate/react && npm pack --dry-run --ignore-scripts --workspace @chatgate/vue && npm pack --dry-run --ignore-scripts --workspace @chatgate/react-native"
+    "pack:check": "npm run build && npm pack --dry-run --ignore-scripts --workspace @chatgate/core && npm pack --dry-run --ignore-scripts --workspace @chatgate/react && npm pack --dry-run --ignore-scripts --workspace @chatgate/vue && npm pack --dry-run --ignore-scripts --workspace @chatgate/react-native",
+    "release:check": "node scripts/verify-release.mjs"
   },
   "engines": {
     "node": ">=20.19.4"
