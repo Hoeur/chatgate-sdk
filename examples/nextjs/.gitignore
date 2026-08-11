@@ -1,0 +1,11 @@
+**/dist/
+node_modules/
+.next/
+coverage/
+playwright-report/
+test-results/
+*.log
+*.tsbuildinfo
+*.tgz
+.idea/
+../../chatgate-sdk/

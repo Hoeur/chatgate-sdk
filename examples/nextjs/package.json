@@ -1,0 +1,33 @@
+{
+  "name": "chatgate-nextjs-sample",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Standalone Next.js consumer sample for the published ChatGate npm SDK.",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3000",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1 --port 3000",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test test/published-packages.test.mjs",
+    "verify": "npm run test && npm run lint && npm run typecheck && npm run build"
+  },
+  "dependencies": {
+    "@chatgate/core": "file:../../packages/core",
+    "@chatgate/react": "file:../../packages/react",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.3.0",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=20.19.4"
+  }
+}

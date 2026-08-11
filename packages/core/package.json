@@ -1,0 +1,53 @@
+{
+  "name": "@chatgate/core",
+  "version": "0.2.0",
+  "description": "Framework-independent ChatGate client for web, React Native, Next.js, Vue, and other JavaScript runtimes.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "react-native": "./dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "react-native": "./dist/index.js",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "npm run clean && tsc -p tsconfig.json",
+    "test": "npm run build && node --test test/client.test.mjs",
+    "test:e2e": "npm run build && node test/live-e2e.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm test"
+  },
+  "keywords": [
+    "chatgate",
+    "chat",
+    "sdk",
+    "socket.io",
+    "react-native",
+    "nextjs",
+    "vue"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

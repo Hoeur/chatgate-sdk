@@ -1,0 +1,26 @@
+{
+  "name": "chatgate-sdk-workspace",
+  "version": "0.2.0",
+  "private": true,
+  "description": "ChatGate JavaScript SDK workspace.",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @chatgate/core && npm run build:adapters",
+    "build:adapters": "npm run build --workspace @chatgate/react --workspace @chatgate/vue --workspace @chatgate/react-native",
+    "test": "npm run test --workspace @chatgate/core && npm run test:adapters",
+    "test:adapters": "npm run test --workspace @chatgate/react --workspace @chatgate/vue --workspace @chatgate/react-native",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "pack:check": "npm run build && npm pack --dry-run --ignore-scripts --workspace @chatgate/core && npm pack --dry-run --ignore-scripts --workspace @chatgate/react && npm pack --dry-run --ignore-scripts --workspace @chatgate/vue && npm pack --dry-run --ignore-scripts --workspace @chatgate/react-native"
+  },
+  "engines": {
+    "node": ">=20.19.4"
+  },
+  "dependencies": {
+    "@chatgate/core": "^0.2.0",
+    "@chatgate/react": "^0.2.0",
+    "@chatgate/react-native": "^0.2.0",
+    "@chatgate/vue": "^0.2.0"
+  }
+}

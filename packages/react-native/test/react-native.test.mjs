@@ -1,0 +1,18 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import React from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { ChatGateNativeContext, useChatGate } from "../dist/context.js";
+
+function Probe() {
+  const { status } = useChatGate();
+  return React.createElement("span", null, status);
+}
+
+test("exports a framework context consumable by React Native hooks", () => {
+  const value = { client: {}, status: "idle", error: undefined };
+  const html = renderToStaticMarkup(
+    React.createElement(ChatGateNativeContext.Provider, { value }, React.createElement(Probe)),
+  );
+  assert.match(html, /idle/);
+});
