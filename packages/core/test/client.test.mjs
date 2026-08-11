@@ -107,6 +107,44 @@ test("starts a visitor session and connects the socket", async () => {
   client.stop();
 });
 
+test("creates a visitor session directly from a publishable key", async () => {
+  const requests = [];
+  const client = createChatGateClient({
+    baseUrl: "https://api.example.test",
+    publicKey: "cg_pub_example",
+    organizationId: "org-1",
+    userId: "customer-123",
+    userName: "Customer",
+    channel: "WEB_WIDGET",
+    fetch: async (url, init) => {
+      requests.push({ url, init });
+      return response(200, session);
+    },
+    socketFactory: () => new FakeSocket(),
+  });
+
+  await client.start();
+
+  assert.equal(requests[0].url, "https://api.example.test/api/gateway/embed/token");
+  assert.deepEqual(JSON.parse(requests[0].init.body), {
+    publicKey: "cg_pub_example",
+    organizationId: "org-1",
+    channel: "WEB_WIDGET",
+    externalUserId: "customer-123",
+    name: "Customer",
+    visitorSessionId: JSON.parse(requests[0].init.body).visitorSessionId,
+    visitorEventId: `${JSON.parse(requests[0].init.body).visitorSessionId}:started`,
+  });
+  client.stop();
+});
+
+test("requires either a publishable key or a custom session provider", () => {
+  assert.throws(
+    () => createChatGateClient({ baseUrl: "https://api.example.test" }),
+    (error) => error instanceof ChatGateError && error.code === "INVALID_CONFIG",
+  );
+});
+
 test("adds authorization and organization headers", async () => {
   const requests = [];
   const client = createChatGateClient({

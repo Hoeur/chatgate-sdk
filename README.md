@@ -22,7 +22,7 @@ application server; every client receives only a short-lived visitor session.
 ## Working sample
 
 [`examples/nextjs`](./examples/nextjs) is a standalone consumer project using
-the local 0.2 packages before publication. It is configured for the live
+the local 0.3 packages before publication. It is configured for the live
 ChatGate publishable-key flow and exercises visitor session creation, history,
 text, image/file upload, browser voice recording, replies, reactions, typing,
 presence, read receipts, Socket.IO acknowledgement, and merchant replies.
@@ -50,5 +50,5 @@ four `@chatgate/*` packages on npm:
 
 No `NPM_TOKEN` GitHub secret is needed. To publish, update the root and package
 versions, run `npm run release:check`, push the commit, then publish a GitHub
-Release whose tag matches the version, such as `v0.2.0`. A rerun skips package
+Release whose tag matches the version, such as `v0.3.0`. A rerun skips package
 versions that already exist on npm.

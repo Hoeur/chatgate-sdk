@@ -1,6 +1,6 @@
-import { SupportChat } from "@/features/support-chat/support-chat";
+import { ChatGate } from "@chatgate/react";
 
-const installedPackages = ["@chatgate/core@0.2.0", "@chatgate/react@0.2.0"];
+const installedPackages = ["@chatgate/core@0.3.0", "@chatgate/react@0.3.0"];
 
 export default function HomePage() {
   return (
@@ -19,7 +19,15 @@ export default function HomePage() {
           ))}
         </ul>
       </section>
-      <SupportChat />
+      <section className="demo-panel" aria-label="ChatGate example">
+        <ChatGate
+          publicKey="cg_pub_z1lzc3otAHo_jWq0fFq8CDEV"
+          organizationId="cmsesv871000cro1lf82msw20"
+          userId="customer-1234"
+          userName="Customer"
+          title="ChatGate support"
+        />
+      </section>
     </main>
   );
 }

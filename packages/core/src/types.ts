@@ -213,7 +213,19 @@ export interface ChatGateClientOptions {
   /** Host only, without /api. Example: https://api.chat-gate.com */
   baseUrl: string;
   socketUrl?: string;
-  sessionProvider: ChatGateSessionProvider;
+  /** Advanced authentication hook for private, application-owned sessions. */
+  sessionProvider?: ChatGateSessionProvider;
+  /** Browser-safe publishable key. Never use a cg_live_ key here. */
+  publicKey?: string;
+  organizationId?: string;
+  /** Stable customer/visitor identifier sent as externalUserId. */
+  userId?: string;
+  userName?: string;
+  /** Optional HMAC produced by your server for a verified signed-in user. */
+  userHash?: string;
+  channel?: string;
+  roomId?: string;
+  businessUnitExternalId?: string;
   fetch?: ChatGateFetch;
   socketFactory?: ChatGateSocketFactory;
   logger?: ChatGateLogger;

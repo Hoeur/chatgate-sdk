@@ -15,13 +15,12 @@ realtime contracts again.
 ## Security boundary
 
 Never place a `cg_live_` subscription key or ChatGate embed HMAC secret in a web
-or mobile application. `sessionProvider` must call an endpoint owned by the host
-application. That endpoint authenticates the current customer and returns only a
-short-lived, visitor-scoped ChatGate session.
+or mobile application. A `cg_pub_` publishable key is designed for client code;
+the SDK exchanges it for a short-lived, visitor-scoped ChatGate session.
 
-The host endpoint may currently compute a verified user hash and call
-`POST /api/gateway/embed/token`. It must not call `POST /api/gateway/session` for
-customer chat because that route represents the subscription owner.
+Use `sessionProvider` when your application owns a private authenticated session
+flow. A host endpoint may compute a verified user hash, but the HMAC secret must
+never be sent to the browser.
 
 ## Install
 
@@ -29,11 +28,33 @@ customer chat because that route represents the subscription owner.
 npm install @chatgate/core
 ```
 
-Version 0.2 adds the complete customer-conversation contract on top of the
-published 0.1 transport: attachments, voice metadata, replies, reactions,
+Version 0.3 adds the simple publishable-key setup while retaining the complete
+customer-conversation contract: attachments, voice metadata, replies, reactions,
 typing, presence, read receipts, edits, deletes, and realtime reconciliation.
 
-## Create a client
+## Publishable-key client
+
+This matches the browser embed-script contract and needs no application proxy
+route:
+
+```ts
+import { createChatGateClient } from "@chatgate/core";
+
+const chatgate = createChatGateClient({
+  baseUrl: "https://api.chat-gate.com",
+  publicKey: "cg_pub_...",
+  organizationId: "your-organization-id",
+  userId: "customer-1234",
+  userName: "Customer",
+});
+
+await chatgate.start();
+```
+
+The website origin must be registered in ChatGate Developer Access. When
+`userId` is omitted, the SDK creates and persists an anonymous visitor ID.
+
+## Custom authenticated client
 
 ```ts
 import { createChatGateClient } from "@chatgate/core";
@@ -71,23 +92,8 @@ chatgate.stop();
 
 ## Next.js
 
-Create the client in a Client Component or provider. Do not initialize Socket.IO
-during server rendering.
-
-```tsx
-"use client";
-
-import { createChatGateClient } from "@chatgate/core";
-
-export const chatgate = createChatGateClient({
-  baseUrl: process.env.NEXT_PUBLIC_CHATGATE_URL!,
-  sessionProvider: () =>
-    fetch("/api/chatgate/session", { method: "POST" }).then((response) => {
-      if (!response.ok) throw new Error("Chat session failed");
-      return response.json();
-    }),
-});
-```
+Install `@chatgate/react` and use its high-level `<ChatGate />` component. It
+creates the client only within the Client Component boundary.
 
 ## Vue
 

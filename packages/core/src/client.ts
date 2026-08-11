@@ -17,6 +17,7 @@ import type {
   ChatGateResponse,
   ChatGateSendMessageInput,
   ChatGateSession,
+  ChatGateSessionProvider,
   ChatGateSocket,
   ChatGateSocketFactory,
   ChatGateUploadFile,
@@ -56,6 +57,43 @@ function randomId(): string {
   return `cg_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 }
 
+function storedId(storage: Storage | undefined, key: string, prefix: string): string {
+  try {
+    const existing = storage?.getItem(key);
+    if (existing) return existing;
+    const generated = `${prefix}_${randomId()}`;
+    storage?.setItem(key, generated);
+    return generated;
+  } catch {
+    return `${prefix}_${randomId()}`;
+  }
+}
+
+function browserStorage(name: "localStorage" | "sessionStorage"): Storage | undefined {
+  if (typeof window === "undefined") return undefined;
+  try {
+    return window[name];
+  } catch {
+    return undefined;
+  }
+}
+
+function browserVisitorContext(): Record<string, string | number | undefined> {
+  if (typeof window === "undefined") return {};
+  return {
+    pageUrl: `${window.location.origin}${window.location.pathname}`,
+    pageTitle: document.title,
+    pageReferrer: document.referrer || undefined,
+    browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    browserLanguage: navigator.language,
+    browserPlatform: navigator.platform,
+    screenWidth: window.screen.width,
+    screenHeight: window.screen.height,
+    viewportWidth: window.innerWidth,
+    viewportHeight: window.innerHeight,
+  };
+}
+
 function createQuery(values: Record<string, string | number | undefined>): string {
   const entries = Object.entries(values).filter((entry): entry is [string, string | number] => entry[1] !== undefined);
   if (entries.length === 0) return "";
@@ -88,7 +126,7 @@ export class ChatGateClient {
   readonly baseUrl: string;
   readonly socketUrl: string;
 
-  private readonly sessionProvider: ChatGateClientOptions["sessionProvider"];
+  private readonly sessionProvider: ChatGateSessionProvider;
   private readonly fetchFunction: ChatGateFetch;
   private readonly socketFactory: ChatGateSocketFactory;
   private readonly logger: ChatGateClientOptions["logger"];
@@ -106,12 +144,58 @@ export class ChatGateClient {
     if (!options.baseUrl.trim()) throw new ChatGateError("INVALID_CONFIG", "baseUrl is required");
     this.baseUrl = trimTrailingSlash(options.baseUrl);
     this.socketUrl = trimTrailingSlash(options.socketUrl ?? options.baseUrl);
-    this.sessionProvider = options.sessionProvider;
     this.fetchFunction = options.fetch ?? defaultFetch;
+    this.sessionProvider = options.sessionProvider ?? this.createPublicKeySessionProvider(options);
     this.socketFactory = options.socketFactory ?? defaultSocketFactory;
     this.logger = options.logger;
     this.refreshLeewayMs = options.refreshLeewayMs ?? 60_000;
     this.sendTimeoutMs = options.sendTimeoutMs ?? 15_000;
+  }
+
+  private createPublicKeySessionProvider(
+    options: ChatGateClientOptions,
+  ): NonNullable<ChatGateClientOptions["sessionProvider"]> {
+    const publicKey = options.publicKey?.trim();
+    if (!publicKey) {
+      throw new ChatGateError(
+        "INVALID_CONFIG",
+        "Provide publicKey for a browser embed session or sessionProvider for custom authentication",
+      );
+    }
+
+    const userId = options.userId?.trim() || storedId(
+      browserStorage("localStorage"),
+      `chatgate:visitor:${publicKey}`,
+      "visitor",
+    );
+    const visitorSessionId = storedId(
+      browserStorage("sessionStorage"),
+      `chatgate:session:${publicKey}`,
+      "session",
+    );
+    const visitorEventId = `${visitorSessionId}:started`;
+
+    return async ({ businessUnitExternalId }) => {
+      const response = await this.fetchFunction(`${this.baseUrl}/api/gateway/embed/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          publicKey,
+          organizationId: options.organizationId,
+          roomId: options.roomId,
+          businessUnitExternalId: businessUnitExternalId ?? options.businessUnitExternalId,
+          channel: options.channel ?? "WEB_WIDGET",
+          externalUserId: userId,
+          name: options.userName,
+          userHash: options.userHash,
+          visitorSessionId,
+          visitorEventId,
+          ...browserVisitorContext(),
+        }),
+      });
+      if (!response.ok) throw await responseError(response);
+      return await response.json() as ChatGateSession;
+    };
   }
 
   get session(): Readonly<ChatGateSession> | undefined {

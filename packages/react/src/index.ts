@@ -1,5 +1,6 @@
 "use client";
 
+export { ChatGate, type ChatGateProps } from "./chatgate.js";
 export { ChatGateProvider, type ChatGateProviderProps } from "./provider.js";
 export {
   useChatGate,

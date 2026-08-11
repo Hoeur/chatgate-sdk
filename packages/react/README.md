@@ -2,40 +2,34 @@
 
 React and Next.js bindings for `@chatgate/core`.
 
+## Simple integration
+
 ```tsx
-"use client";
+import { ChatGate } from "@chatgate/react";
 
-import { createChatGateClient } from "@chatgate/core";
-import { ChatGateConversation, ChatGateProvider } from "@chatgate/react";
-
-const client = createChatGateClient({
-  baseUrl: "https://api.chat-gate.com",
-  sessionProvider: () =>
-    fetch("/api/chatgate/session", { method: "POST" }).then((response) => {
-      if (!response.ok) throw new Error("Chat session failed");
-      return response.json();
-    }),
-});
-
-export function SupportChat() {
+export default function SupportPage() {
   return (
-    <ChatGateProvider client={client} fallback={<p>Connecting…</p>}>
-      <ChatGateConversation
-        title="Support"
-        allowAttachments
-        allowVoice
-        acceptedFileTypes="image/*,audio/*,.pdf,.doc,.docx"
-      />
-    </ChatGateProvider>
+    <ChatGate
+      publicKey="cg_pub_..."
+      organizationId="your-organization-id"
+      userId="customer-1234"
+      userName="Customer"
+    />
   );
 }
 ```
 
-Create the client in a client-only module and never include `cg_live_` or the
-embed HMAC secret in a Next.js client bundle.
+The publishable key and organization ID are safe client configuration. Never
+include a `cg_live_` key or embed HMAC secret in a browser bundle. Register the
+website's exact origin in ChatGate Developer Access before connecting.
 
-The packaged conversation UI includes history pagination, text, image/file
-upload, browser voice recording, replies, reactions, edit/delete actions,
-typing, presence, read receipts, reconnect/resync, and merchant realtime
-messages. Use `useChatGateConversation()` when your product needs a custom UI;
-the returned controller exposes the same feature set.
+`<ChatGate />` includes history, realtime messages, text, image/file uploads,
+browser voice recording, replies, reactions, edit/delete, typing, presence, and
+read receipts. Appearance and composer behavior can be changed with props such
+as `title`, `className`, `style`, `allowAttachments`, and `allowVoice`.
+
+## Custom authentication or UI
+
+Advanced applications can create a core client with `sessionProvider`, mount it
+with `<ChatGateProvider>`, and use `<ChatGateConversation>` or
+`useChatGateConversation()` for a custom interface.

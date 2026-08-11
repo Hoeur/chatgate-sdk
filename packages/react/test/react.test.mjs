@@ -3,7 +3,7 @@ import test from "node:test";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createChatGateClient } from "@chatgate/core";
-import { ChatGateConversation, ChatGateProvider } from "../dist/index.js";
+import { ChatGate, ChatGateConversation, ChatGateProvider } from "../dist/index.js";
 
 function fakeClient() {
   return createChatGateClient({
@@ -25,5 +25,19 @@ test("renders the framework UI without starting sockets during SSR", () => {
 
   assert.match(html, /Customer care/);
   assert.match(html, /No messages yet/);
+  assert.match(html, /aria-label="Message"/);
+});
+
+test("renders the one-component publishable-key integration during SSR", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(ChatGate, {
+      publicKey: "cg_pub_example",
+      organizationId: "org-1",
+      userId: "customer-123",
+      title: "Simple support",
+    }),
+  );
+
+  assert.match(html, /Simple support/);
   assert.match(html, /aria-label="Message"/);
 });
