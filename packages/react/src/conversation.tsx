@@ -27,34 +27,204 @@ export interface ChatGateConversationProps {
   renderMessage?: (message: ChatGateMessage, own: boolean) => ReactNode;
 }
 
+type IconName = "attach" | "chat" | "file" | "microphone" | "more" | "send";
+
+const QUICK_REACTIONS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}"] as const;
+
+const iconPaths: Record<IconName, ReactNode> = {
+  attach: <path d="M20.5 11.5 12 20a6 6 0 0 1-8.5-8.5l9-9a4 4 0 0 1 5.7 5.7l-9 9a2 2 0 0 1-2.9-2.8l8.3-8.3" />,
+  chat: <><path d="M20 15a3 3 0 0 1-3 3H9l-5 3V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3Z" /><path d="M8 9h8M8 13h5" /></>,
+  file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></>,
+  microphone: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" /></>,
+  more: <><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></>,
+  send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
+};
+
+function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+  return (
+    <svg
+      aria-hidden="true"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {iconPaths[name]}
+    </svg>
+  );
+}
+
+const componentCss = `
+  [data-chatgate-conversation] * { box-sizing: border-box; }
+  [data-chatgate-conversation] button,
+  [data-chatgate-conversation] input { font: inherit; }
+  [data-chatgate-conversation] button:focus-visible,
+  [data-chatgate-conversation] input:focus-visible,
+  [data-chatgate-conversation] summary:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, .24);
+    outline-offset: 2px;
+  }
+  [data-chatgate-conversation] .cg-message-menu summary { list-style: none; }
+  [data-chatgate-conversation] .cg-message-menu summary::-webkit-details-marker { display: none; }
+  [data-chatgate-conversation] .cg-message-menu[open] > summary {
+    background: #e8effb !important;
+    color: #1d4ed8 !important;
+  }
+  [data-chatgate-conversation] .cg-message-menu__panel {
+    animation: cg-menu-in 130ms ease-out;
+  }
+  [data-chatgate-conversation] .cg-message-action:hover,
+  [data-chatgate-conversation] .cg-tool-button:hover:not(:disabled) { background: #eff4fb !important; }
+  [data-chatgate-conversation] .cg-send-button:hover:not(:disabled) { background: #1d4ed8 !important; }
+  [data-chatgate-conversation] button:disabled { cursor: not-allowed !important; opacity: .52; }
+  [data-chatgate-conversation] .cg-message-image { transition: transform 160ms ease; }
+  [data-chatgate-conversation] .cg-message-image:hover { transform: scale(1.012); }
+  @keyframes cg-menu-in {
+    from { opacity: 0; transform: translateY(4px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @media (max-width: 560px) {
+    [data-chatgate-conversation] .cg-chat-header { padding: 13px 14px !important; }
+    [data-chatgate-conversation] .cg-message-list { padding: 16px 12px !important; }
+    [data-chatgate-conversation] .cg-message { max-width: 88% !important; }
+    [data-chatgate-conversation] .cg-composer { padding: 10px !important; }
+    [data-chatgate-conversation] .cg-send-label { display: none; }
+    [data-chatgate-conversation] .cg-send-button { width: 42px !important; padding: 0 !important; }
+    [data-chatgate-conversation] .cg-composer-footer { display: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    [data-chatgate-conversation] *,
+    [data-chatgate-conversation] *::before,
+    [data-chatgate-conversation] *::after { animation: none !important; transition: none !important; }
+  }
+`;
+
 const styles: Record<string, CSSProperties> = {
-  root: { display: "flex", flexDirection: "column", minHeight: 480, overflow: "hidden", border: "1px solid #dbe3ef", borderRadius: 16, background: "#fff", color: "#0f172a" },
-  header: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "14px 16px", borderBottom: "1px solid #e2e8f0", fontWeight: 700 },
-  presence: { display: "flex", alignItems: "center", gap: 6, color: "#64748b", fontSize: 12, fontWeight: 600 },
-  presenceDot: { width: 8, height: 8, borderRadius: 999, background: "#94a3b8" },
-  messages: { display: "flex", flex: 1, flexDirection: "column", gap: 10, overflowY: "auto", padding: 16, minHeight: 280 },
-  messageRow: { display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 4 },
-  messageRowOwn: { alignItems: "flex-end" },
-  own: { maxWidth: "82%", padding: "9px 12px", borderRadius: "14px 14px 4px 14px", background: "#2563eb", color: "#fff", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
-  other: { maxWidth: "82%", padding: "9px 12px", borderRadius: "14px 14px 14px 4px", background: "#eff4fa", color: "#0f172a", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
-  replyQuote: { marginBottom: 7, padding: "6px 8px", borderLeft: "3px solid currentColor", borderRadius: 6, background: "rgba(148,163,184,.18)", fontSize: 12, opacity: 0.85 },
-  image: { display: "block", width: "min(100%, 320px)", maxHeight: 300, borderRadius: 10, objectFit: "cover" },
-  audio: { display: "block", width: "min(280px, 70vw)", maxWidth: "100%" },
-  fileLink: { display: "inline-flex", alignItems: "center", gap: 6, color: "inherit", fontWeight: 700 },
-  messageMeta: { display: "flex", alignItems: "center", gap: 6, marginTop: 5, fontSize: 10, opacity: 0.72 },
-  actions: { display: "flex", gap: 4, padding: "0 3px" },
-  action: { border: 0, background: "transparent", color: "#64748b", padding: "2px 4px", fontSize: 11, cursor: "pointer" },
-  reactions: { display: "flex", flexWrap: "wrap", gap: 3, marginTop: 5 },
-  reaction: { border: "1px solid rgba(148,163,184,.45)", borderRadius: 999, background: "rgba(255,255,255,.25)", color: "inherit", padding: "1px 6px", fontSize: 11, cursor: "pointer" },
-  composer: { display: "flex", flexDirection: "column", gap: 8, padding: 12, borderTop: "1px solid #e2e8f0" },
-  replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "7px 10px", borderRadius: 10, background: "#eff6ff", color: "#1e40af", fontSize: 12 },
-  composerRow: { display: "flex", alignItems: "center", gap: 8 },
-  input: { minWidth: 0, flex: 1, border: "1px solid #cbd5e1", borderRadius: 12, padding: "10px 12px", font: "inherit" },
-  button: { border: 0, borderRadius: 12, padding: "10px 16px", background: "#2563eb", color: "#fff", fontWeight: 700, cursor: "pointer" },
-  toolButton: { border: "1px solid #cbd5e1", borderRadius: 10, padding: "9px 10px", background: "#fff", color: "#334155", fontWeight: 700, cursor: "pointer" },
-  status: { margin: "auto", padding: 24, color: "#64748b", textAlign: "center" },
-  error: { margin: 12, padding: 10, borderRadius: 10, background: "#fef2f2", color: "#b91c1c" },
-  typing: { minHeight: 18, padding: "0 16px 7px", color: "#64748b", fontSize: 12 },
+  root: {
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 520,
+    height: "min(680px, calc(100dvh - 32px))",
+    maxHeight: 760,
+    overflow: "hidden",
+    border: "1px solid #d6e0ee",
+    borderRadius: 20,
+    background: "#fff",
+    boxShadow: "0 18px 48px rgba(30, 64, 175, .10)",
+    color: "#14213d",
+    fontFamily: "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+  },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 16,
+    minHeight: 72,
+    padding: "14px 18px",
+    borderBottom: "1px solid #e5ebf4",
+    background: "rgba(255,255,255,.96)",
+  },
+  identity: { display: "flex", alignItems: "center", minWidth: 0, gap: 11 },
+  avatar: {
+    display: "grid",
+    flex: "0 0 auto",
+    width: 42,
+    height: 42,
+    placeItems: "center",
+    borderRadius: 14,
+    background: "linear-gradient(145deg, #2563eb, #1d4ed8)",
+    boxShadow: "0 8px 18px rgba(37, 99, 235, .24)",
+    color: "#fff",
+  },
+  identityText: { display: "flex", minWidth: 0, flexDirection: "column", gap: 2 },
+  title: { overflow: "hidden", fontSize: 15, fontWeight: 760, lineHeight: 1.3, textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  subtitle: { color: "#64748b", fontSize: 11.5, lineHeight: 1.4 },
+  presence: {
+    display: "inline-flex",
+    flex: "0 0 auto",
+    alignItems: "center",
+    gap: 7,
+    padding: "7px 10px",
+    border: "1px solid #dce5f1",
+    borderRadius: 999,
+    background: "#f8fafc",
+    color: "#52627a",
+    fontSize: 11.5,
+    fontWeight: 700,
+  },
+  presenceDot: { width: 8, height: 8, borderRadius: 999, background: "#94a3b8", boxShadow: "0 0 0 3px rgba(148,163,184,.14)" },
+  messages: {
+    display: "flex",
+    minHeight: 0,
+    flex: 1,
+    flexDirection: "column",
+    gap: 8,
+    overflowY: "auto",
+    padding: "20px 18px",
+    background: "linear-gradient(180deg, #f8fbff 0%, #f4f7fb 100%)",
+    scrollbarGutter: "stable",
+  },
+  messageRow: { display: "flex", width: "fit-content", maxWidth: "min(78%, 460px)", flexDirection: "column", alignItems: "flex-start", gap: 3 },
+  messageRowOwn: { alignSelf: "flex-end", alignItems: "flex-end" },
+  bubble: {
+    minWidth: 48,
+    padding: "9px 12px 8px",
+    border: "1px solid #e0e7f0",
+    borderRadius: "17px 17px 17px 6px",
+    background: "#fff",
+    boxShadow: "0 4px 14px rgba(15, 23, 42, .055)",
+    color: "#172033",
+    fontSize: 14,
+    lineHeight: 1.45,
+    overflowWrap: "anywhere",
+    whiteSpace: "pre-wrap",
+  },
+  bubbleOwn: {
+    borderColor: "#2563eb",
+    borderRadius: "17px 17px 6px 17px",
+    background: "linear-gradient(145deg, #2f6dea, #2563eb)",
+    boxShadow: "0 7px 18px rgba(37, 99, 235, .19)",
+    color: "#fff",
+  },
+  mediaBubble: { width: "min(370px, 72vw)", padding: 6 },
+  replyQuote: { marginBottom: 7, padding: "7px 9px", borderLeft: "3px solid currentColor", borderRadius: 8, background: "rgba(148,163,184,.16)", fontSize: 11.5, opacity: 0.86 },
+  imageLink: { display: "block", overflow: "hidden", borderRadius: 12, background: "#e8eef7" },
+  image: { display: "block", width: "100%", maxHeight: 310, borderRadius: 12, objectFit: "cover" },
+  audio: { display: "block", width: "min(300px, 68vw)", maxWidth: "100%" },
+  fileLink: { display: "flex", alignItems: "center", gap: 10, minWidth: 210, color: "inherit", fontWeight: 720, textDecoration: "none" },
+  fileIcon: { display: "grid", flex: "0 0 auto", width: 36, height: 36, placeItems: "center", borderRadius: 10, background: "rgba(148,163,184,.18)" },
+  fileText: { display: "flex", minWidth: 0, flexDirection: "column", gap: 1 },
+  fileName: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  fileSize: { fontSize: 10.5, fontWeight: 600, opacity: 0.7 },
+  messageText: { padding: "1px 1px 0" },
+  messageMeta: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, marginTop: 5, fontSize: 9.5, fontWeight: 650, opacity: 0.68 },
+  messageFooter: { display: "flex", alignItems: "center", gap: 6, minHeight: 24 },
+  reactions: { display: "flex", flexWrap: "wrap", gap: 4 },
+  reaction: { minHeight: 23, padding: "1px 7px", border: "1px solid #d8e1ee", borderRadius: 999, background: "#fff", color: "#334155", boxShadow: "0 2px 6px rgba(15,23,42,.04)", fontSize: 11, cursor: "pointer" },
+  messageMenu: { position: "relative" },
+  messageMenuTrigger: { display: "grid", width: 28, height: 24, padding: 0, placeItems: "center", border: 0, borderRadius: 8, background: "transparent", color: "#7b8ba3", cursor: "pointer" },
+  messageMenuPanel: { position: "absolute", zIndex: 8, bottom: "calc(100% + 6px)", display: "flex", alignItems: "center", gap: 3, width: "max-content", padding: 5, border: "1px solid #dbe4f0", borderRadius: 12, background: "rgba(255,255,255,.98)", boxShadow: "0 14px 35px rgba(15, 23, 42, .16)", backdropFilter: "blur(12px)" },
+  messageAction: { minHeight: 30, padding: "5px 8px", border: 0, borderRadius: 8, background: "transparent", color: "#52627a", fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  reactionAction: { display: "grid", width: 30, minHeight: 30, padding: 0, placeItems: "center", border: 0, borderRadius: 8, background: "transparent", cursor: "pointer" },
+  loadEarlier: { alignSelf: "center", marginBottom: 4, padding: "7px 11px", border: "1px solid #d7e1ee", borderRadius: 999, background: "rgba(255,255,255,.88)", color: "#52627a", fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  status: { display: "grid", margin: "auto", padding: 26, placeItems: "center", color: "#64748b", textAlign: "center" },
+  emptyIcon: { display: "grid", width: 48, height: 48, marginBottom: 12, placeItems: "center", border: "1px solid #d9e4f2", borderRadius: 16, background: "#fff", boxShadow: "0 8px 22px rgba(30,64,175,.08)", color: "#2563eb" },
+  emptyTitle: { marginBottom: 4, color: "#1e293b", fontSize: 14, fontWeight: 760 },
+  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "10px 12px 0", padding: "9px 11px", border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b42318", fontSize: 12 },
+  retryButton: { padding: "4px 8px", border: "1px solid #fda4af", borderRadius: 8, background: "#fff", color: "#be123c", fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  typing: { minHeight: 25, padding: "5px 16px 2px", background: "#fff", color: "#64748b", fontSize: 11.5 },
+  composer: { display: "flex", flexDirection: "column", gap: 8, padding: "9px 12px 11px", borderTop: "1px solid #e5ebf4", background: "#fff" },
+  replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "8px 10px", border: "1px solid #dbeafe", borderRadius: 11, background: "#eff6ff", color: "#1e40af", fontSize: 11.5 },
+  cancelReply: { padding: "3px 7px", border: 0, borderRadius: 7, background: "transparent", color: "#1d4ed8", fontSize: 11, fontWeight: 750, cursor: "pointer" },
+  composerRow: { display: "flex", alignItems: "center", gap: 5, minHeight: 50, padding: 4, border: "1px solid #d4deeb", borderRadius: 16, background: "#f8fafc", boxShadow: "0 4px 14px rgba(15,23,42,.04)" },
+  input: { minWidth: 0, height: 40, flex: 1, padding: "0 8px", border: 0, outline: 0, background: "transparent", color: "#172033", fontSize: 13.5 },
+  sendButton: { display: "inline-flex", height: 40, alignItems: "center", justifyContent: "center", gap: 7, padding: "0 13px", border: 0, borderRadius: 12, background: "#2563eb", color: "#fff", boxShadow: "0 6px 15px rgba(37,99,235,.22)", fontSize: 12.5, fontWeight: 760, cursor: "pointer" },
+  toolButton: { display: "grid", flex: "0 0 auto", width: 40, height: 40, padding: 0, placeItems: "center", border: 0, borderRadius: 11, background: "transparent", color: "#52627a", cursor: "pointer" },
+  composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "#94a3b8", fontSize: 9.5, fontWeight: 600 },
 };
 
 function attachmentLabel(message: ChatGateMessage): string {
@@ -101,14 +271,15 @@ function DefaultMessage({
   for (const reaction of message.reactions ?? []) {
     reactionCounts.set(reaction.emoji, (reactionCounts.get(reaction.emoji) ?? 0) + 1);
   }
+  const hasMedia = (message.messageType === "image" || message.messageType === "voice") && Boolean(message.fileUrl);
 
   return (
-    <div style={{ ...styles.messageRow, ...(own ? styles.messageRowOwn : {}) }}>
-      <div style={own ? styles.own : styles.other}>
+    <article className="cg-message" style={{ ...styles.messageRow, ...(own ? styles.messageRowOwn : {}) }}>
+      <div style={{ ...styles.bubble, ...(own ? styles.bubbleOwn : {}), ...(hasMedia ? styles.mediaBubble : {}) }}>
         {message.replyTo ? <div style={styles.replyQuote}>{attachmentLabel(message.replyTo)}</div> : null}
         {message.messageType === "image" && message.fileUrl ? (
-          <a href={message.fileUrl} target="_blank" rel="noreferrer">
-            <img src={message.fileUrl} alt={message.fileName ?? "Shared image"} style={styles.image} />
+          <a href={message.fileUrl} target="_blank" rel="noreferrer" style={styles.imageLink}>
+            <img className="cg-message-image" src={message.fileUrl} alt={message.fileName ?? "Shared image"} style={styles.image} />
           </a>
         ) : null}
         {message.messageType === "voice" && message.fileUrl ? (
@@ -118,11 +289,22 @@ function DefaultMessage({
         ) : null}
         {message.messageType === "file" && message.fileUrl ? (
           <a href={message.fileUrl} target="_blank" rel="noreferrer" download={message.fileName ?? undefined} style={styles.fileLink}>
-            <span aria-hidden="true">&#128206;</span>
-            <span>{message.fileName ?? "Download attachment"}{message.fileSize ? ` · ${formatFileSize(message.fileSize)}` : ""}</span>
+            <span aria-hidden="true" style={styles.fileIcon}><Icon name="file" /></span>
+            <span style={styles.fileText}>
+              <span style={styles.fileName}>{message.fileName ?? "Download attachment"}</span>
+              {message.fileSize ? <span style={styles.fileSize}>{formatFileSize(message.fileSize)}</span> : null}
+            </span>
           </a>
         ) : null}
-        {message.content && !(message.messageType === "voice" && message.content === "Voice message") ? <div>{message.content}</div> : null}
+        {message.content && !(message.messageType === "voice" && message.content === "Voice message") ? (
+          <div style={styles.messageText}>{message.content}</div>
+        ) : null}
+        <div style={{ ...styles.messageMeta, ...(own ? { color: "#dbeafe" } : { color: "#64748b" }) }}>
+          <span>{formatTime(message.createdAt)}</span>
+          {own ? <span>{message.read ? "Seen" : "Sent"}</span> : null}
+        </div>
+      </div>
+      <div style={{ ...styles.messageFooter, ...(own ? { justifyContent: "flex-end" } : {}) }}>
         {reactionCounts.size > 0 ? (
           <div style={styles.reactions} aria-label="Message reactions">
             {[...reactionCounts].map(([emoji, count]) => (
@@ -130,27 +312,45 @@ function DefaultMessage({
             ))}
           </div>
         ) : null}
-        <div style={styles.messageMeta}>
-          <span>{formatTime(message.createdAt)}</span>
-          {own ? <span>{message.read ? "Seen" : "Sent"}</span> : null}
-        </div>
+        <details className="cg-message-menu" style={styles.messageMenu}>
+          <summary style={styles.messageMenuTrigger} aria-label="Message actions" title="Message actions">
+            <Icon name="more" />
+          </summary>
+          <div
+            className="cg-message-menu__panel"
+            style={{ ...styles.messageMenuPanel, ...(own ? { right: 0 } : { left: 0 }) }}
+          >
+            <button className="cg-message-action" type="button" style={styles.messageAction} onClick={onReply}>Reply</button>
+            {QUICK_REACTIONS.map((emoji) => (
+              <button
+                className="cg-message-action"
+                key={emoji}
+                type="button"
+                style={styles.reactionAction}
+                aria-label={`React ${emoji}`}
+                title={`React ${emoji}`}
+                onClick={() => onReact(emoji)}
+              >
+                {emoji}
+              </button>
+            ))}
+            {own && message.messageType === "text" ? (
+              <button className="cg-message-action" type="button" style={styles.messageAction} onClick={onEdit}>Edit</button>
+            ) : null}
+            {own ? (
+              <button className="cg-message-action" type="button" style={{ ...styles.messageAction, color: "#be123c" }} onClick={onDelete}>Delete</button>
+            ) : null}
+          </div>
+        </details>
       </div>
-      <div style={styles.actions}>
-        <button type="button" style={styles.action} onClick={onReply}>Reply</button>
-        {(["👍", "❤️", "😂"] as const).map((emoji) => (
-          <button key={emoji} type="button" style={styles.action} aria-label={`React ${emoji}`} onClick={() => onReact(emoji)}>{emoji}</button>
-        ))}
-        {own && message.messageType === "text" ? <button type="button" style={styles.action} onClick={onEdit}>Edit</button> : null}
-        {own ? <button type="button" style={styles.action} onClick={onDelete}>Delete</button> : null}
-      </div>
-    </div>
+    </article>
   );
 }
 
 export function ChatGateConversation({
   conversationId,
   title = "Support",
-  placeholder = "Write a message…",
+  placeholder = "Write a message...",
   emptyState = "No messages yet. Start the conversation.",
   className,
   style,
@@ -275,89 +475,139 @@ export function ChatGateConversation({
   }
 
   const typingLabel = state.typingUsers.length > 0
-    ? `${state.typingUsers[0]?.username ?? "Support"} is typing…`
+    ? `${state.typingUsers[0]?.username ?? "Support"} is typing...`
     : "";
 
   return (
-    <section className={className} style={{ ...styles.root, ...style }} aria-label={title}>
-      <header style={styles.header}>
-        <span>{title}</span>
+    <section
+      data-chatgate-conversation
+      className={className}
+      style={{ ...styles.root, ...style }}
+      aria-label={title}
+    >
+      <style>{componentCss}</style>
+      <header className="cg-chat-header" style={styles.header}>
+        <div style={styles.identity}>
+          <span aria-hidden="true" style={styles.avatar}><Icon name="chat" size={21} /></span>
+          <span style={styles.identityText}>
+            <span style={styles.title}>{title}</span>
+            <span style={styles.subtitle}>{agentOnline ? "Usually replies instantly" : "We are here to help"}</span>
+          </span>
+        </div>
         <span style={styles.presence}>
-          <span aria-hidden="true" style={{ ...styles.presenceDot, background: agentOnline ? "#22c55e" : "#94a3b8" }} />
-          {agentOnline ? "Online" : "Support team"}
+          <span
+            aria-hidden="true"
+            style={{
+              ...styles.presenceDot,
+              ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
+            }}
+          />
+          {agentOnline ? "Online" : "Support"}
         </span>
       </header>
       {state.error || localError ? (
         <div style={styles.error} role="alert">
-          {localError ?? state.error?.message}{" "}
-          {state.error ? <button type="button" onClick={() => void controller.reload()}>Retry</button> : null}
+          <span>{localError ?? state.error?.message}</span>
+          {state.error ? <button type="button" style={styles.retryButton} onClick={() => void controller.reload()}>Retry</button> : null}
         </div>
       ) : null}
-      <div style={styles.messages} aria-live="polite" aria-busy={state.loading}>
+      <div className="cg-message-list" style={styles.messages} aria-live="polite" aria-busy={state.loading}>
         {state.thread?.nextCursor ? (
-          <button type="button" disabled={state.loadingOlder} onClick={() => void controller.loadOlder()}>
-            {state.loadingOlder ? "Loading…" : "Load earlier messages"}
+          <button style={styles.loadEarlier} type="button" disabled={state.loadingOlder} onClick={() => void controller.loadOlder()}>
+            {state.loadingOlder ? "Loading..." : "Load earlier messages"}
           </button>
         ) : null}
-        {state.loading && state.messages.length === 0 ? <div style={styles.status}>Loading conversation…</div> : null}
-        {!state.loading && state.messages.length === 0 ? <div style={styles.status}>{emptyState}</div> : null}
+        {state.loading && state.messages.length === 0 ? <div style={styles.status}>Loading conversation...</div> : null}
+        {!state.loading && state.messages.length === 0 ? (
+          <div style={styles.status}>
+            <span aria-hidden="true" style={styles.emptyIcon}><Icon name="chat" size={22} /></span>
+            <strong style={styles.emptyTitle}>Start a conversation</strong>
+            <span>{emptyState}</span>
+          </div>
+        ) : null}
         {state.messages.map((message) => {
           const own = message.senderId === client.session?.userId;
-          return (
-            <div key={message.id}>
-              {renderMessage ? renderMessage(message, own) : (
-                <DefaultMessage
-                  message={message}
-                  own={own}
-                  onReply={() => setReplyTo(message)}
-                  onReact={(emoji) => void controller.toggleReaction(message.id, emoji)}
-                  onEdit={() => {
-                    const next = window.prompt("Edit message", message.content);
-                    if (next?.trim()) void controller.editMessage(message.id, next);
-                  }}
-                  onDelete={() => {
-                    if (window.confirm("Delete this message?")) void controller.deleteMessage(message.id);
-                  }}
-                />
-              )}
-            </div>
+          return renderMessage ? (
+            <div key={message.id}>{renderMessage(message, own)}</div>
+          ) : (
+            <DefaultMessage
+              key={message.id}
+              message={message}
+              own={own}
+              onReply={() => setReplyTo(message)}
+              onReact={(emoji) => void controller.toggleReaction(message.id, emoji)}
+              onEdit={() => {
+                const next = window.prompt("Edit message", message.content);
+                if (next?.trim()) void controller.editMessage(message.id, next);
+              }}
+              onDelete={() => {
+                if (window.confirm("Delete this message?")) void controller.deleteMessage(message.id);
+              }}
+            />
           );
         })}
       </div>
       <div style={styles.typing} role="status">{typingLabel}</div>
-      <form style={styles.composer} onSubmit={submit}>
+      <form className="cg-composer" style={styles.composer} onSubmit={submit}>
         {replyTo ? (
           <div style={styles.replyBanner}>
             <span>Replying to {attachmentLabel(replyTo)}</span>
-            <button type="button" style={styles.action} onClick={() => setReplyTo(undefined)}>Cancel</button>
+            <button type="button" style={styles.cancelReply} onClick={() => setReplyTo(undefined)}>Cancel</button>
           </div>
         ) : null}
         <div style={styles.composerRow}>
           {allowAttachments ? (
             <>
               <input ref={fileInputRef} type="file" accept={acceptedFileTypes} hidden onChange={onFileSelected} />
-              <button type="button" style={styles.toolButton} disabled={state.sending || recording} onClick={() => fileInputRef.current?.click()} aria-label="Attach file">
-                Attach
+              <button
+                className="cg-tool-button"
+                type="button"
+                style={styles.toolButton}
+                disabled={state.sending || recording}
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Attach file"
+                title="Attach file"
+              >
+                <Icon name="attach" />
               </button>
             </>
           ) : null}
           {allowVoice ? (
-            <button type="button" style={{ ...styles.toolButton, ...(recording ? { background: "#fee2e2", color: "#b91c1c" } : {}) }} disabled={state.sending && !recording} onClick={recording ? stopRecording : () => void startRecording()}>
-              {recording ? "Stop" : "Voice"}
+            <button
+              className="cg-tool-button"
+              type="button"
+              style={{ ...styles.toolButton, ...(recording ? { background: "#fee2e2", color: "#b91c1c" } : {}) }}
+              disabled={state.sending && !recording}
+              onClick={recording ? stopRecording : () => void startRecording()}
+              aria-label={recording ? "Stop recording" : "Record voice message"}
+              aria-pressed={recording}
+              title={recording ? "Stop recording" : "Record voice message"}
+            >
+              <Icon name="microphone" />
             </button>
           ) : null}
           <input
             aria-label="Message"
             style={styles.input}
             value={draft}
-            placeholder={recording ? "Recording voice…" : placeholder}
+            placeholder={recording ? "Recording voice..." : placeholder}
             disabled={state.sending || recording}
             onBlur={() => controller.setTyping(false)}
             onChange={(event) => notifyTyping(event.currentTarget.value)}
           />
-          <button style={styles.button} type="submit" disabled={state.sending || recording || !draft.trim()}>
-            {state.uploading ? "Uploading…" : state.sending ? "Sending…" : "Send"}
+          <button
+            className="cg-send-button"
+            style={styles.sendButton}
+            type="submit"
+            disabled={state.sending || recording || !draft.trim()}
+          >
+            <span className="cg-send-label">{state.uploading ? "Uploading" : state.sending ? "Sending" : "Send"}</span>
+            <Icon name="send" size={17} />
           </button>
+        </div>
+        <div className="cg-composer-footer" style={styles.composerFooter}>
+          <span>{recording ? "Recording in progress" : "Powered by ChatGate"}</span>
+          <span>Press Enter to send</span>
         </div>
       </form>
     </section>
