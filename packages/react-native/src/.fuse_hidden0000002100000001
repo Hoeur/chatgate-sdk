@@ -160,7 +160,7 @@ export function ChatGateConversation({
         </View>
       </View>
     );
-  }, [client, controller, state.thread, showRoleBadge, roleLabels]);
+  }, [client, controller]);
 
   const assigneeId = state.thread?.assigneeId ?? state.thread?.createdBy?.id;
   const online = assigneeId ? state.onlineUserIds.includes(assigneeId) : false;

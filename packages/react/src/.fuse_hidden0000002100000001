@@ -319,7 +319,7 @@ function DefaultMessage({
   own: boolean;
   role: ChatGateParticipantRole;
   showRoleBadge: boolean;
-  roleLabels: Partial<Record<ChatGateParticipantRole, string>> | undefined;
+  roleLabels?: Partial<Record<ChatGateParticipantRole, string>>;
   onReply: () => void;
   onReact: (emoji: string) => void;
   onEdit: () => void;

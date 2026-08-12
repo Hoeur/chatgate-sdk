@@ -11,4 +11,10 @@ export {
 } from "./conversation-list-controller.js";
 export { ChatGateError } from "./errors.js";
 export { getJwtExpirationMs } from "./jwt.js";
+export {
+  resolveMessageRole,
+  CHATGATE_ROLE_LABELS,
+  type ChatGateParticipantRole,
+  type ChatGateRoleContext,
+} from "./roles.js";
 export type * from "./types.js";

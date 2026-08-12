@@ -7,7 +7,13 @@ import {
   type PropType,
   type VNodeChild,
 } from "vue";
-import type { ChatGateMessage, ChatGateMessageType } from "@chatgate/core";
+import {
+  resolveMessageRole,
+  CHATGATE_ROLE_LABELS,
+  type ChatGateMessage,
+  type ChatGateMessageType,
+  type ChatGateParticipantRole,
+} from "@chatgate/core";
 import { icon } from "./icons.js";
 import { useChatGate } from "./plugin.js";
 import { useChatGateConversation } from "./use-conversation.js";
@@ -129,6 +135,7 @@ const styles: Record<string, CSSProperties> = {
   },
   messageRow: { display: "flex", width: "fit-content", maxWidth: "min(78%, 460px)", flexDirection: "column", alignItems: "flex-start", gap: "3px" },
   messageRowOwn: { alignSelf: "flex-end", alignItems: "flex-end" },
+  roleBadge: { display: "inline-flex", alignItems: "center", alignSelf: "flex-start", marginBottom: "4px", padding: "1px 8px", borderRadius: "999px", fontSize: "10px", fontWeight: 700, letterSpacing: "0.3px", textTransform: "uppercase" },
   bubble: {
     minWidth: "48px",
     padding: "9px 12px 8px",
@@ -209,6 +216,16 @@ function formatTime(value: string): string {
     : date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+const ROLE_BADGE_COLORS: Record<ChatGateParticipantRole, { bg: string; color: string; border: string }> = {
+  customer: { bg: "#eef2f7", color: "#475569", border: "#dbe2ec" },
+  merchant: { bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" },
+  admin: { bg: "#f3e8ff", color: "#7e22ce", border: "#e9d5ff" },
+};
+
+function roleLabel(role: ChatGateParticipantRole, overrides?: Partial<Record<ChatGateParticipantRole, string>>): string {
+  return overrides?.[role] ?? CHATGATE_ROLE_LABELS[role];
+}
+
 export const ChatGateConversation = defineComponent({
   name: "ChatGateConversation",
   props: {
@@ -219,7 +236,9 @@ export const ChatGateConversation = defineComponent({
     allowVoice: { type: Boolean, default: true },
     acceptedFileTypes: String,
     maxFileSizeBytes: { type: Number, default: 25 * 1024 * 1024 },
-    renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean) => VNodeChild>,
+    renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole) => VNodeChild>,
+    showRoleBadge: { type: Boolean, default: true },
+    roleLabels: Object as PropType<Partial<Record<ChatGateParticipantRole, string>>>,
     onBack: Function as PropType<() => void>,
   },
   setup(props) {
@@ -333,7 +352,8 @@ export const ChatGateConversation = defineComponent({
       recordingStream?.getTracks().forEach((track) => track.stop());
     });
 
-    function defaultMessage(message: ChatGateMessage, own: boolean): VNodeChild {
+    function defaultMessage(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole): VNodeChild {
+      const roleColor = ROLE_BADGE_COLORS[role];
       const hasMedia = (message.messageType === "image" || message.messageType === "voice") && Boolean(message.fileUrl);
       const bubbleChildren: VNodeChild[] = [];
       if (message.replyTo) {
@@ -371,8 +391,12 @@ export const ChatGateConversation = defineComponent({
         key: message.id,
         class: "cg-message",
         style: { ...styles.messageRow, ...(own ? styles.messageRowOwn : {}) },
+        "data-role": role,
       }, [
-        h("div", { style: { ...styles.bubble, ...(own ? styles.bubbleOwn : {}), ...(hasMedia ? styles.mediaBubble : {}) } }, bubbleChildren),
+        props.showRoleBadge && !own
+          ? h("span", { class: "cg-role-badge", "data-role": role, style: { ...styles.roleBadge, background: roleColor.bg, color: roleColor.color, border: `1px solid ${roleColor.border}` } }, roleLabel(role, props.roleLabels))
+          : null,
+        h("div", { style: { ...styles.bubble, ...(own ? styles.bubbleOwn : { borderLeft: `3px solid ${roleColor.color}` }), ...(hasMedia ? styles.mediaBubble : {}) } }, bubbleChildren),
         h("div", { style: { ...styles.messageFooter, ...(own ? { justifyContent: "flex-end" } : {}) } }, [
           reactionCounts.size > 0
             ? h("div", { style: styles.reactions, "aria-label": "Message reactions" }, [...reactionCounts].map(([emoji, count]) =>
@@ -441,9 +465,11 @@ export const ChatGateConversation = defineComponent({
                 h("span", "No messages yet. Start the conversation."),
               ])
             : null,
-          ...state.value.messages.map((message) =>
-            props.renderMessage?.(message, message.senderId === client.session?.userId)
-              ?? defaultMessage(message, message.senderId === client.session?.userId)),
+          ...state.value.messages.map((message) => {
+            const own = message.senderId === client.session?.userId;
+            const role = resolveMessageRole(message, state.value.thread);
+            return props.renderMessage?.(message, own, role) ?? defaultMessage(message, own, role);
+          }),
         ]),
         h("div", { style: styles.typing, role: "status" }, typing ? `${typing.username ?? "Support"} is typing…` : ""),
         h("form", { class: "cg-composer", style: styles.composer, onSubmit: (event: Event) => { event.preventDefault(); void send(); } }, [

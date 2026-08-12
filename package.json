@@ -1,6 +1,6 @@
 {
   "name": "chatgate-sdk-workspace",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "private": true,
   "description": "ChatGate JavaScript SDK workspace.",
   "repository": {
@@ -23,9 +23,9 @@
     "node": ">=20.19.4"
   },
   "dependencies": {
-    "@chatgate/core": "^0.5.1",
-    "@chatgate/react": "^0.5.1",
-    "@chatgate/react-native": "^0.5.1",
-    "@chatgate/vue": "^0.5.1"
+    "@chatgate/core": "^0.5.2",
+    "@chatgate/react": "^0.5.2",
+    "@chatgate/react-native": "^0.5.2",
+    "@chatgate/vue": "^0.5.2"
   }
 }
