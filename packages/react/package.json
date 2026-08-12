@@ -28,7 +28,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm test"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "peerDependencies": {
     "@chatgate/core": "^0.5.1",
     "react": ">=18"

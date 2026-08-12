@@ -45,7 +45,7 @@
     "nextjs",
     "vue"
   ],
-  "license": "UNLICENSED",
+  "license": "MIT",
   "dependencies": {
     "socket.io-client": "^4.8.3"
   },
