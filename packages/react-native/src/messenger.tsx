@@ -107,7 +107,10 @@ function ChatGateConversationNavigator({
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.greeting}>{greeting ?? `Welcome to ${title}. Choose a conversation or start chatting with a business.`}</Text>
-        <Text style={styles.online}>● We&apos;re online</Text>
+        <View style={styles.onlineRow}>
+          <View style={styles.onlineDot} />
+          <Text style={styles.online}>We&apos;re online</Text>
+        </View>
       </View>
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {state.error ? (
@@ -156,7 +159,9 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 18, backgroundColor: "#2563eb" },
   title: { color: "#fff", fontSize: 20, fontWeight: "800" },
   greeting: { marginTop: 8, color: "#dbeafe", fontSize: 13, lineHeight: 20 },
-  online: { marginTop: 12, color: "#dcfce7", fontSize: 12, fontWeight: "700" },
+  onlineRow: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 12 },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#4ade80" },
+  online: { color: "#dcfce7", fontSize: 12, fontWeight: "700" },
   body: { flex: 1, backgroundColor: "#f7f9fc" },
   bodyContent: { flexGrow: 1, padding: 18 },
   sectionTitle: { marginBottom: 8, color: "#64748b", fontSize: 11, fontWeight: "800", letterSpacing: 1.1, textTransform: "uppercase" },

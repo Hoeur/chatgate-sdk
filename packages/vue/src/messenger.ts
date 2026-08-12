@@ -120,7 +120,10 @@ export const ChatGateMessenger = defineComponent({
         h("header", { style: headerStyle }, [
           h("h2", { style: { margin: 0, fontSize: "20px" } }, props.title),
           h("p", { style: { margin: "8px 0 0", color: "#dbeafe", fontSize: "13px", lineHeight: 1.5 } }, props.greeting ?? `Welcome to ${props.title}. Choose a conversation or start chatting with a business.`),
-          h("small", { style: { display: "block", marginTop: "12px", color: "#dcfce7", fontWeight: 700 } }, "● We're online"),
+          h("small", { style: { display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "12px", color: "#dcfce7", fontWeight: 700 } }, [
+            h("span", { "aria-hidden": "true", style: { width: "8px", height: "8px", borderRadius: "999px", background: "#4ade80", boxShadow: "0 0 0 3px rgba(74,222,128,.25)" } }),
+            "We're online",
+          ]),
         ]),
         h("div", { style: bodyStyle, "aria-busy": state.value.loading || state.value.switching }, [
           state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", background: "#fef2f2", color: "#b91c1c" } }, [state.value.error.message, h("button", { type: "button", onClick: () => void controller.reload() }, "Retry")]) : null,

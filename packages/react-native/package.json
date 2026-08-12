@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/react-native",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "React Native and Expo bindings for ChatGate.",
   "repository": {
     "type": "git",
@@ -32,7 +32,7 @@
   },
   "license": "UNLICENSED",
   "peerDependencies": {
-    "@chatgate/core": "^0.5.0",
+    "@chatgate/core": "^0.5.1",
     "react": ">=18",
     "react-native": ">=0.76"
   },

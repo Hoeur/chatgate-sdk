@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import type { ChatGateMessage } from "@chatgate/core";
 import { useChatGate } from "./context.js";
+import { AttachIcon, BackIcon, ChatIcon, FileIcon, MicIcon, PlayIcon, SendIcon } from "./icons.js";
 import type { ChatGateMediaAdapter, ChatGateNativeAsset } from "./types.js";
 import { useChatGateConversation } from "./use-conversation.js";
 
@@ -104,8 +105,19 @@ export function ChatGateConversation({
             </Pressable>
           ) : null}
           {item.fileUrl && item.messageType !== "image" ? (
-            <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(item.fileUrl!)}>
-              <Text style={own ? styles.ownText : styles.fileText}>
+            <Pressable
+              accessibilityRole="link"
+              style={styles.attachmentRow}
+              onPress={() => void Linking.openURL(item.fileUrl!)}
+            >
+              <View style={[styles.attachmentIcon, own && styles.attachmentIconOwn]}>
+                {item.messageType === "voice" ? (
+                  <PlayIcon size={16} color={own ? "#fff" : "#1d4ed8"} />
+                ) : (
+                  <FileIcon size={16} color={own ? "#fff" : "#1d4ed8"} />
+                )}
+              </View>
+              <Text numberOfLines={1} style={[styles.attachmentText, own ? styles.ownText : styles.fileText]}>
                 {item.messageType === "voice" ? "Play voice message" : item.fileName ?? "Open attachment"}
               </Text>
             </Pressable>
@@ -134,10 +146,16 @@ export function ChatGateConversation({
         <View style={styles.headerIdentity}>
           {onBack ? (
             <Pressable accessibilityRole="button" accessibilityLabel="Back to conversations" style={styles.backButton} onPress={onBack}>
-              <Text style={styles.backText}>‹</Text>
+              <BackIcon size={18} />
             </Pressable>
           ) : null}
-          <Text style={styles.headerTitle}>{title}</Text>
+          <View style={styles.headerAvatar}>
+            <ChatIcon size={20} />
+          </View>
+          <View style={styles.headerText}>
+            <Text numberOfLines={1} style={styles.headerTitle}>{title}</Text>
+            <Text numberOfLines={1} style={styles.headerSubtitle}>{online ? "Usually replies instantly" : "We are here to help"}</Text>
+          </View>
         </View>
         <View style={styles.presence}>
           <View style={[styles.presenceDot, online && styles.presenceDotOnline]} />
@@ -173,12 +191,12 @@ export function ChatGateConversation({
       <View style={styles.composer}>
         {mediaAdapter ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Attach file" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.pickAttachment().then(upload)}>
-            <Text style={styles.iconText}>+</Text>
+            <AttachIcon size={19} color="#1d4ed8" />
           </Pressable>
         ) : null}
         {mediaAdapter?.recordVoice ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Record voice message" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.recordVoice!().then(upload)}>
-            <Text style={styles.iconText}>●</Text>
+            <MicIcon size={19} color="#1d4ed8" />
           </Pressable>
         ) : null}
         <TextInput
@@ -192,8 +210,18 @@ export function ChatGateConversation({
           onChangeText={updateDraft}
           onSubmitEditing={() => void send()}
         />
-        <Pressable accessibilityRole="button" style={[styles.sendButton, (!draft.trim() || state.sending) && styles.disabled]} disabled={!draft.trim() || state.sending} onPress={() => void send()}>
-          <Text style={styles.sendText}>{state.uploading ? "Upload…" : state.sending ? "…" : "Send"}</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send message"
+          style={[styles.sendButton, (!draft.trim() || state.sending) && styles.disabled]}
+          disabled={!draft.trim() || state.sending}
+          onPress={() => void send()}
+        >
+          {state.uploading || state.sending ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <SendIcon size={17} />
+          )}
         </Pressable>
       </View>
     </View>
@@ -205,8 +233,10 @@ const styles = StyleSheet.create({
   header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: "#e2e8f0" },
   headerIdentity: { minWidth: 0, flex: 1, flexDirection: "row", alignItems: "center", gap: 8 },
   backButton: { width: 34, height: 34, alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: "#dbe3ef", borderRadius: 10, backgroundColor: "#f8fafc" },
-  backText: { color: "#334155", fontSize: 24, lineHeight: 26 },
+  headerAvatar: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 13, backgroundColor: "#2563eb" },
+  headerText: { minWidth: 0, flex: 1, gap: 1 },
   headerTitle: { color: "#0f172a", fontSize: 16, fontWeight: "700" },
+  headerSubtitle: { color: "#64748b", fontSize: 11 },
   presence: { flexDirection: "row", alignItems: "center", gap: 6 },
   presenceDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#94a3b8" },
   presenceDotOnline: { backgroundColor: "#22c55e" },
@@ -229,19 +259,21 @@ const styles = StyleSheet.create({
   reaction: { fontSize: 12 },
   actions: { flexDirection: "row", gap: 8, paddingHorizontal: 4 },
   actionText: { color: "#64748b", fontSize: 11 },
+  attachmentRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 150 },
+  attachmentIcon: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 9, backgroundColor: "rgba(37,99,235,.12)" },
+  attachmentIconOwn: { backgroundColor: "rgba(255,255,255,.22)" },
+  attachmentText: { flexShrink: 1 },
   fileText: { color: "#1d4ed8", fontWeight: "700" },
   image: { width: 220, height: 160, marginBottom: 6, borderRadius: 10, backgroundColor: "#dbe3ef" },
   typing: { minHeight: 18, paddingHorizontal: 16, color: "#64748b", fontSize: 12 },
   replyBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 10, padding: 8, borderRadius: 8, backgroundColor: "#eff6ff" },
   replyText: { flex: 1, color: "#1e40af", fontSize: 12 },
   cancelText: { color: "#1d4ed8", fontWeight: "700" },
-  composer: { flexDirection: "row", alignItems: "flex-end", gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: "#e2e8f0" },
-  input: { flex: 1, maxHeight: 120, borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9, color: "#0f172a" },
-  sendButton: { minHeight: 42, justifyContent: "center", borderRadius: 12, paddingHorizontal: 15, backgroundColor: "#2563eb" },
-  sendText: { color: "#fff", fontWeight: "700" },
+  composer: { flexDirection: "row", alignItems: "flex-end", gap: 7, padding: 10, borderTopWidth: 1, borderTopColor: "#e2e8f0", backgroundColor: "#fff" },
+  input: { flex: 1, maxHeight: 120, minHeight: 42, borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 14, paddingHorizontal: 13, paddingVertical: 10, color: "#0f172a", backgroundColor: "#f8fafc" },
+  sendButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "#2563eb", shadowColor: "#2563eb", shadowOpacity: 0.28, shadowRadius: 7, shadowOffset: { width: 0, height: 4 }, elevation: 3 },
   disabled: { opacity: 0.45 },
-  iconButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 12, backgroundColor: "#eff4fa" },
-  iconText: { color: "#1d4ed8", fontSize: 20, fontWeight: "700" },
+  iconButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center", borderRadius: 14, backgroundColor: "#eff4fa" },
   error: { margin: 10, borderRadius: 10, padding: 10, backgroundColor: "#fef2f2" },
   errorText: { color: "#b91c1c" },
   loadEarlier: { padding: 8, color: "#2563eb", textAlign: "center" },

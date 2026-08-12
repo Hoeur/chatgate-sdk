@@ -33,7 +33,7 @@ export interface ChatGateConversationProps {
   theme?: ChatGateTheme;
 }
 
-type IconName = "attach" | "back" | "chat" | "file" | "microphone" | "more" | "send";
+type IconName = "attach" | "back" | "chat" | "file" | "image" | "microphone" | "more" | "send" | "stop";
 
 const QUICK_REACTIONS = ["\u{1F44D}", "\u2764\uFE0F", "\u{1F602}"] as const;
 
@@ -42,9 +42,11 @@ const iconPaths: Record<IconName, ReactNode> = {
   back: <><path d="m15 18-6-6 6-6" /><path d="M9 12h10" /></>,
   chat: <><path d="M20 15a3 3 0 0 1-3 3H9l-5 3V7a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3Z" /><path d="M8 9h8M8 13h5" /></>,
   file: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" /><path d="M14 2v6h6M8 13h8M8 17h5" /></>,
+  image: <><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="9" cy="9" r="1.6" /><path d="m21 15-4.2-4.2a1.5 1.5 0 0 0-2.1 0L6 19.5" /></>,
   microphone: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8" /></>,
   more: <><circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /><circle cx="19" cy="12" r="1" fill="currentColor" stroke="none" /></>,
   send: <><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></>,
+  stop: <rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" stroke="none" />,
 };
 
 function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
@@ -93,6 +95,16 @@ const componentCss = `
   @keyframes cg-menu-in {
     from { opacity: 0; transform: translateY(4px) scale(.98); }
     to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  [data-chatgate-conversation] .cg-recording { animation: cg-pulse 1.2s ease-in-out infinite; }
+  [data-chatgate-conversation] .cg-recording-dot { animation: cg-blink 1s ease-in-out infinite; }
+  @keyframes cg-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, .35); }
+    50% { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0); }
+  }
+  @keyframes cg-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .35; }
   }
   @media (max-width: 560px) {
     [data-chatgate-conversation] .cg-chat-header { padding: 13px 14px !important; }
@@ -388,6 +400,7 @@ export function ChatGateConversation({
   const [recording, setRecording] = useState(false);
   const [localError, setLocalError] = useState<string>();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const recorderRef = useRef<MediaRecorder | undefined>(undefined);
   const recordingStreamRef = useRef<MediaStream | undefined>(undefined);
@@ -591,6 +604,7 @@ export function ChatGateConversation({
           {allowAttachments ? (
             <>
               <input ref={fileInputRef} type="file" accept={acceptedFileTypes} hidden onChange={onFileSelected} />
+              <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={onFileSelected} />
               <button
                 className="cg-tool-button"
                 type="button"
@@ -602,11 +616,22 @@ export function ChatGateConversation({
               >
                 <Icon name="attach" />
               </button>
+              <button
+                className="cg-tool-button"
+                type="button"
+                style={styles.toolButton}
+                disabled={state.sending || recording}
+                onClick={() => imageInputRef.current?.click()}
+                aria-label="Send a photo"
+                title="Send a photo"
+              >
+                <Icon name="image" />
+              </button>
             </>
           ) : null}
           {allowVoice ? (
             <button
-              className="cg-tool-button"
+              className={recording ? "cg-tool-button cg-recording" : "cg-tool-button"}
               type="button"
               style={{ ...styles.toolButton, ...(recording ? { background: "#fee2e2", color: "#b91c1c" } : {}) }}
               disabled={state.sending && !recording}
@@ -615,7 +640,7 @@ export function ChatGateConversation({
               aria-pressed={recording}
               title={recording ? "Stop recording" : "Record voice message"}
             >
-              <Icon name="microphone" />
+              <Icon name={recording ? "stop" : "microphone"} />
             </button>
           ) : null}
           <input
@@ -638,7 +663,14 @@ export function ChatGateConversation({
           </button>
         </div>
         <div className="cg-composer-footer" style={styles.composerFooter}>
-          <span>{recording ? "Recording in progress" : "Powered by ChatGate"}</span>
+          {recording ? (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#b91c1c", fontWeight: 700 }}>
+              <span className="cg-recording-dot" aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: "#dc2626" }} />
+              Recording voice message…
+            </span>
+          ) : (
+            <span>Powered by ChatGate</span>
+          )}
           <span>Press Enter to send</span>
         </div>
       </form>
