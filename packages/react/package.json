@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/react",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "description": "React and Next.js bindings for ChatGate.",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "peerDependencies": {
-    "@chatgate/core": "^0.6.1",
+    "@chatgate/core": "^0.6.2",
     "react": ">=18"
   },
   "devDependencies": {
