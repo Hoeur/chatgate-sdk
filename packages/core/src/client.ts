@@ -79,7 +79,16 @@ function browserStorage(name: "localStorage" | "sessionStorage"): Storage | unde
 }
 
 function browserVisitorContext(): Record<string, string | number | undefined> {
-  if (typeof window === "undefined") return {};
+  // React Native defines `window` but not `window.location` / `document`,
+  // so a bare `typeof window` check is not enough to detect a real browser DOM.
+  if (
+    typeof window === "undefined" ||
+    typeof document === "undefined" ||
+    typeof navigator === "undefined" ||
+    !window.location
+  ) {
+    return {};
+  }
   return {
     pageUrl: `${window.location.origin}${window.location.pathname}`,
     pageTitle: document.title,
