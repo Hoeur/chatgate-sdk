@@ -19,6 +19,7 @@ import {
   CHATGATE_ROLE_LABELS,
   type ChatGateMessage,
   type ChatGateParticipantRole,
+  type ChatGateReaction,
 } from "@chatgate/core";
 import { useChatGate } from "./context.js";
 import { AttachIcon, BackIcon, ChatIcon, FileIcon, MicIcon, PlayIcon, SendIcon, StopIcon } from "./icons.js";
@@ -36,6 +37,7 @@ export interface ChatGateConversationProps {
   placeholder?: string;
   style?: StyleProp<ViewStyle>;
   mediaAdapter?: ChatGateMediaAdapter;
+  /** Show the sender avatar + name above each incoming message group. Default true. */
   showRoleBadge?: boolean;
   roleLabels?: Partial<Record<ChatGateParticipantRole, string>>;
   /** Branding — accent, surfaces, radius. See ChatGateTheme. */
@@ -45,11 +47,7 @@ export interface ChatGateConversationProps {
   onBack?: () => void;
 }
 
-const ROLE_BADGE_COLORS: Record<ChatGateParticipantRole, { bg: string; color: string }> = {
-  customer: { bg: "#eef2f7", color: "#475569" },
-  merchant: { bg: "#e1f5ec", color: "#0369a1" },
-  admin: { bg: "#f3e8ff", color: "#7e22ce" },
-};
+const QUICK_REACTIONS = ["\u{1F44D}", "❤️", "\u{1F602}", "\u{1F62E}", "\u{1F622}", "\u{1F64F}"] as const;
 
 function roleLabel(role: ChatGateParticipantRole, overrides?: Partial<Record<ChatGateParticipantRole, string>>): string {
   return overrides?.[role] ?? CHATGATE_ROLE_LABELS[role];
@@ -59,6 +57,29 @@ function messageLabel(message: ChatGateMessage): string {
   if (message.messageType === "image") return "Photo";
   if (message.messageType === "voice") return "Voice message";
   return message.content || message.fileName || "Attachment";
+}
+
+function formatTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  let hours = date.getHours();
+  const minutes = date.getMinutes().toString().padStart(2, "0");
+  const meridiem = hours >= 12 ? "PM" : "AM";
+  hours %= 12;
+  if (hours === 0) hours = 12;
+  return `${hours}:${minutes} ${meridiem}`;
+}
+
+function initialOf(name: string): string {
+  const char = name.trim().charAt(0);
+  return char ? char.toUpperCase() : "?";
+}
+
+function countReactions(reactions?: ChatGateReaction[] | null): Array<{ emoji: string; count: number }> {
+  if (!reactions?.length) return [];
+  const counts = new Map<string, number>();
+  for (const reaction of reactions) counts.set(reaction.emoji, (counts.get(reaction.emoji) ?? 0) + 1);
+  return Array.from(counts, ([emoji, count]) => ({ emoji, count }));
 }
 
 export function ChatGateConversation({
@@ -78,7 +99,8 @@ export function ChatGateConversation({
   const [draft, setDraft] = useState("");
   const [replyTo, setReplyTo] = useState<ChatGateMessage>();
   const [editing, setEditing] = useState<ChatGateMessage>();
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string>();
+  const [menuFor, setMenuFor] = useState<ChatGateMessage | null>(null);
+  const [menuConfirmDelete, setMenuConfirmDelete] = useState(false);
   const listRef = useRef<FlatList<ChatGateMessage>>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [viewerUri, setViewerUri] = useState<string | null>(null);
@@ -87,6 +109,7 @@ export function ChatGateConversation({
 
   const t = useMemo(() => resolveChatGateTheme(theme), [theme]);
   const styles = useMemo(() => createStyles(t), [t]);
+  const selfId = client.session?.userId;
 
   useEffect(() => () => {
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
@@ -103,7 +126,6 @@ export function ChatGateConversation({
 
   const startEdit = useCallback((message: ChatGateMessage) => {
     setReplyTo(undefined);
-    setConfirmDeleteId(undefined);
     setEditing(message);
     setDraft(message.content ?? "");
   }, []);
@@ -111,6 +133,11 @@ export function ChatGateConversation({
   const cancelEdit = useCallback(() => {
     setEditing(undefined);
     setDraft("");
+  }, []);
+
+  const openMenu = useCallback((message: ChatGateMessage) => {
+    setMenuConfirmDelete(false);
+    setMenuFor(message);
   }, []);
 
   const send = useCallback(async () => {
@@ -151,11 +178,7 @@ export function ChatGateConversation({
       value = await response.blob();
     }
     await controller.uploadAndSend(
-      {
-        value,
-        name: asset.name,
-        mimeType: asset.mimeType,
-      },
+      { value, name: asset.name, mimeType: asset.mimeType },
       {
         messageType: asset.messageType,
         ...(replyTo ? { replyToId: replyTo.id } : {}),
@@ -187,7 +210,6 @@ export function ChatGateConversation({
       }
       await stopPlayback();
       if (!mediaAdapter?.playVoice) {
-        // No in-app player supplied — fall back to opening the URL externally.
         void Linking.openURL(uri);
         return;
       }
@@ -208,20 +230,49 @@ export function ChatGateConversation({
     [mediaAdapter, playingVoiceId, stopPlayback],
   );
 
-  const renderMessage: ListRenderItem<ChatGateMessage> = useCallback(({ item }) => {
-    const own = item.senderId === client.session?.userId;
+  const renderMessage: ListRenderItem<ChatGateMessage> = useCallback(({ item, index }) => {
+    const own = item.senderId === selfId;
     const role = resolveMessageRole(item, state.thread);
-    const roleColor = ROLE_BADGE_COLORS[role];
-    const canEdit = own && item.messageType === "text" && Boolean(item.content);
+    const previous = state.messages[index - 1];
+    const next = state.messages[index + 1];
+    const startsGroup = !previous || previous.senderId !== item.senderId;
+    const endsGroup = !next || next.senderId !== item.senderId;
+    const isLast = index === state.messages.length - 1;
+    const senderName = item.sender?.username?.trim() || roleLabel(role, roleLabels);
+    const showText = Boolean(item.content) && !(item.messageType === "voice" && item.content === "Voice message");
+    const reactions = countReactions(item.reactions);
+
     return (
-      <View style={[styles.messageRow, own ? styles.ownRow : styles.otherRow]}>
-        {showRoleBadge && !own ? (
-          <View style={[styles.roleBadge, { backgroundColor: roleColor.bg }]}>
-            <Text style={[styles.roleBadgeText, { color: roleColor.color }]}>{roleLabel(role, roleLabels)}</Text>
+      <View style={startsGroup ? styles.groupStart : styles.groupCont}>
+        {!own && startsGroup && showRoleBadge ? (
+          <View style={styles.senderHeader}>
+            <View style={styles.senderAvatar}>
+              {item.sender?.avatarUrl ? (
+                <Image source={{ uri: item.sender.avatarUrl }} style={styles.senderAvatarImg} />
+              ) : (
+                <Text style={styles.senderAvatarText}>{initialOf(senderName)}</Text>
+              )}
+            </View>
+            <Text numberOfLines={1} style={styles.senderName}>{senderName}</Text>
           </View>
         ) : null}
-        <Pressable style={[styles.bubble, own ? styles.ownBubble : styles.otherBubble, !own ? { borderLeftWidth: 3, borderLeftColor: roleColor.color } : null]} onLongPress={() => setReplyTo(item)}>
-          {item.replyTo ? <Text style={own ? styles.ownReply : styles.otherReply}>{messageLabel(item.replyTo)}</Text> : null}
+        <Pressable
+          delayLongPress={200}
+          onLongPress={() => openMenu(item)}
+          style={[
+            styles.bubble,
+            own ? styles.ownBubble : styles.otherBubble,
+            own && endsGroup ? styles.ownTail : null,
+            !own && endsGroup ? styles.otherTail : null,
+          ]}
+        >
+          {item.replyTo ? (
+            <View style={[styles.replyQuote, own ? styles.replyQuoteOwn : styles.replyQuoteOther]}>
+              <Text numberOfLines={1} style={own ? styles.replyQuoteTextOwn : styles.replyQuoteText}>
+                {messageLabel(item.replyTo)}
+              </Text>
+            </View>
+          ) : null}
           {item.messageType === "image" && item.fileUrl ? (
             <Pressable accessibilityRole="imagebutton" accessibilityLabel="Open image" onPress={() => setViewerUri(item.fileUrl!)}>
               <Image source={{ uri: item.fileUrl }} style={styles.image} resizeMode="cover" />
@@ -240,55 +291,48 @@ export function ChatGateConversation({
               <View style={[styles.attachmentIcon, own && styles.attachmentIconOwn]}>
                 {item.messageType === "voice" ? (
                   playingVoiceId === item.id ? (
-                    <StopIcon size={14} color={own ? t.accentText : t.accentDark} />
+                    <StopIcon size={13} color={own ? t.accentText : t.accentDark} />
                   ) : (
-                    <PlayIcon size={16} color={own ? t.accentText : t.accentDark} />
+                    <PlayIcon size={15} color={own ? t.accentText : t.accentDark} />
                   )
                 ) : (
-                  <FileIcon size={16} color={own ? t.accentText : t.accentDark} />
+                  <FileIcon size={15} color={own ? t.accentText : t.accentDark} />
                 )}
               </View>
               <Text numberOfLines={1} style={[styles.attachmentText, own ? styles.ownText : styles.fileText]}>
                 {item.messageType === "voice"
                   ? playingVoiceId === item.id
                     ? "Playing… tap to stop"
-                    : "Play voice message"
-                  : item.fileName ?? "Open attachment"}
+                    : "Voice message"
+                  : item.fileName ?? "Attachment"}
               </Text>
             </Pressable>
           ) : null}
-          {item.content && !(item.messageType === "voice" && item.content === "Voice message") ? <Text style={own ? styles.ownText : styles.otherText}>{item.content}</Text> : null}
-          {item.reactions?.length ? <View style={styles.reactions}>{item.reactions.map((reaction) => <Text key={`${reaction.userId}-${reaction.emoji}`} style={styles.reaction}>{reaction.emoji}</Text>)}</View> : null}
-          {own ? <Text style={styles.ownMeta}>{item.read ? "Seen" : "Sent"}</Text> : null}
+          {showText ? <Text style={own ? styles.ownText : styles.otherText}>{item.content}</Text> : null}
         </Pressable>
-        <View style={styles.actions}>
-          <Pressable onPress={() => setReplyTo(item)}><Text style={styles.actionText}>Reply</Text></Pressable>
-          {(["👍", "❤️", "😂"] as const).map((emoji) => (
-            <Pressable key={emoji} onPress={() => void controller.toggleReaction(item.id, emoji)}><Text style={styles.actionText}>{emoji}</Text></Pressable>
-          ))}
-          {own ? (
-            confirmDeleteId === item.id ? (
-              <>
-                <Pressable onPress={() => { setConfirmDeleteId(undefined); void controller.deleteMessage(item.id); }}>
-                  <Text style={[styles.actionText, styles.dangerText]}>Confirm delete</Text>
-                </Pressable>
-                <Pressable onPress={() => setConfirmDeleteId(undefined)}><Text style={styles.actionText}>Cancel</Text></Pressable>
-              </>
-            ) : (
-              <>
-                {canEdit ? <Pressable onPress={() => startEdit(item)}><Text style={styles.actionText}>Edit</Text></Pressable> : null}
-                <Pressable onPress={() => setConfirmDeleteId(item.id)}><Text style={[styles.actionText, styles.dangerText]}>Delete</Text></Pressable>
-              </>
-            )
-          ) : null}
-        </View>
+        {reactions.length ? (
+          <View style={[styles.reactionsRow, own ? styles.reactionsOwn : styles.reactionsOther]}>
+            {reactions.map((reaction) => (
+              <Pressable key={reaction.emoji} style={styles.reactionChip} onPress={() => void controller.toggleReaction(item.id, reaction.emoji)}>
+                <Text style={styles.reactionChipEmoji}>{reaction.emoji}</Text>
+                {reaction.count > 1 ? <Text style={styles.reactionChipCount}>{reaction.count}</Text> : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {endsGroup ? (
+          <Text style={[styles.metaText, own ? styles.metaOwn : styles.metaOther]}>
+            {formatTime(item.createdAt)}{own && isLast ? ` · ${item.read ? "Seen" : "Sent"}` : ""}
+          </Text>
+        ) : null}
       </View>
     );
-  }, [client, controller, state.thread, showRoleBadge, roleLabels, styles, t, confirmDeleteId, startEdit, togglePlayVoice, playingVoiceId]);
+  }, [selfId, controller, state.thread, state.messages, showRoleBadge, roleLabels, styles, t, openMenu, togglePlayVoice, playingVoiceId]);
 
   const assigneeId = state.thread?.assigneeId ?? state.thread?.createdBy?.id;
   const online = assigneeId ? state.onlineUserIds.includes(assigneeId) : false;
   const typing = state.typingUsers[0];
+  const menuOwn = menuFor ? menuFor.senderId === selfId : false;
 
   return (
     <View style={[styles.root, style]} accessibilityLabel={title}>
@@ -413,6 +457,75 @@ export function ChatGateConversation({
           </View>
         </Pressable>
       </Modal>
+      <Modal
+        visible={menuFor !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuFor(null)}
+      >
+        <Pressable style={styles.sheetBackdrop} onPress={() => setMenuFor(null)}>
+          <Pressable style={styles.sheet} onPress={() => undefined}>
+            <View style={styles.sheetReactions}>
+              {QUICK_REACTIONS.map((emoji) => (
+                <Pressable
+                  key={emoji}
+                  style={styles.sheetReaction}
+                  onPress={() => {
+                    const target = menuFor;
+                    setMenuFor(null);
+                    if (target) void controller.toggleReaction(target.id, emoji);
+                  }}
+                >
+                  <Text style={styles.sheetReactionText}>{emoji}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Pressable
+              style={styles.sheetItem}
+              onPress={() => {
+                const target = menuFor;
+                setMenuFor(null);
+                if (target) setReplyTo(target);
+              }}
+            >
+              <Text style={styles.sheetItemText}>Reply</Text>
+            </Pressable>
+            {menuOwn && menuFor?.messageType === "text" && menuFor?.content ? (
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => {
+                  const target = menuFor;
+                  setMenuFor(null);
+                  if (target) startEdit(target);
+                }}
+              >
+                <Text style={styles.sheetItemText}>Edit</Text>
+              </Pressable>
+            ) : null}
+            {menuOwn ? (
+              <Pressable
+                style={styles.sheetItem}
+                onPress={() => {
+                  if (!menuConfirmDelete) {
+                    setMenuConfirmDelete(true);
+                    return;
+                  }
+                  const target = menuFor;
+                  setMenuFor(null);
+                  if (target) void controller.deleteMessage(target.id);
+                }}
+              >
+                <Text style={[styles.sheetItemText, styles.dangerText]}>
+                  {menuConfirmDelete ? "Tap again to confirm delete" : "Delete"}
+                </Text>
+              </Pressable>
+            ) : null}
+            <Pressable style={[styles.sheetItem, styles.sheetCancel]} onPress={() => setMenuFor(null)}>
+              <Text style={styles.sheetCancelText}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -434,33 +547,50 @@ function createStyles(t: ResolvedChatGateTheme) {
     presenceDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: t.muted } as const,
     presenceDotOnline: { backgroundColor: t.online } as const,
     presenceText: { color: t.muted, fontSize: 12 } as const,
-    list: { flexGrow: 1, gap: 8, padding: 16 } as const,
+    list: { flexGrow: 1, paddingHorizontal: 14, paddingVertical: 12 } as const,
     emptyList: { flexGrow: 1, alignItems: "center", justifyContent: "center", padding: 24 } as const,
     emptyText: { color: t.muted, textAlign: "center" } as const,
-    messageRow: { maxWidth: "100%", marginBottom: 4 } as const,
-    ownRow: { alignItems: "flex-end" } as const,
-    otherRow: { alignItems: "flex-start" } as const,
-    roleBadge: { alignSelf: "flex-start", marginBottom: 3, paddingHorizontal: 8, paddingVertical: 1, borderRadius: 999 } as const,
-    roleBadgeText: { fontSize: 10, fontWeight: "700", letterSpacing: 0.3, textTransform: "uppercase" } as const,
-    bubble: { maxWidth: "82%", paddingHorizontal: 12, paddingVertical: 9, borderRadius: 14, marginBottom: 4 } as const,
-    ownBubble: { alignSelf: "flex-end", borderBottomRightRadius: 4, backgroundColor: t.accent } as const,
-    otherBubble: { alignSelf: "flex-start", borderBottomLeftRadius: 4, backgroundColor: t.incoming } as const,
-    ownText: { color: t.accentText } as const,
-    otherText: { color: t.text } as const,
-    ownReply: { marginBottom: 6, borderLeftWidth: 3, borderLeftColor: t.accentSoft, paddingLeft: 7, color: t.accentSoft, fontSize: 12 } as const,
-    otherReply: { marginBottom: 6, borderLeftWidth: 3, borderLeftColor: t.muted, paddingLeft: 7, color: t.muted, fontSize: 12 } as const,
-    ownMeta: { marginTop: 4, color: t.accentSoft, fontSize: 10, textAlign: "right" } as const,
-    reactions: { flexDirection: "row", gap: 3, marginTop: 5 } as const,
-    reaction: { fontSize: 12 } as const,
-    actions: { flexDirection: "row", gap: 8, paddingHorizontal: 4 } as const,
-    actionText: { color: t.muted, fontSize: 11 } as const,
-    dangerText: { color: t.danger, fontWeight: "700" } as const,
+
+    groupStart: { marginTop: 14 } as const,
+    groupCont: { marginTop: 2 } as const,
+    senderHeader: { flexDirection: "row", alignItems: "center", gap: 7, marginBottom: 5, marginLeft: 2 } as const,
+    senderAvatar: { width: 26, height: 26, borderRadius: 13, overflow: "hidden", alignItems: "center", justifyContent: "center", backgroundColor: t.accentSoft } as const,
+    senderAvatarImg: { width: 26, height: 26 } as const,
+    senderAvatarText: { color: t.accentDark, fontSize: 12, fontWeight: "800" } as const,
+    senderName: { color: t.muted, fontSize: 12, fontWeight: "600" } as const,
+
+    bubble: { maxWidth: "80%", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18 } as const,
+    ownBubble: { alignSelf: "flex-end", backgroundColor: t.accent } as const,
+    otherBubble: { alignSelf: "flex-start", backgroundColor: t.incoming } as const,
+    ownTail: { borderBottomRightRadius: 5 } as const,
+    otherTail: { borderBottomLeftRadius: 5 } as const,
+    ownText: { color: t.accentText, fontSize: 14.5, lineHeight: 20 } as const,
+    otherText: { color: t.text, fontSize: 14.5, lineHeight: 20 } as const,
+
+    replyQuote: { marginBottom: 5, paddingLeft: 8, paddingVertical: 1, borderLeftWidth: 2, borderRadius: 2 } as const,
+    replyQuoteOwn: { borderLeftColor: "rgba(255,255,255,0.6)" } as const,
+    replyQuoteOther: { borderLeftColor: t.muted } as const,
+    replyQuoteText: { color: t.muted, fontSize: 12 } as const,
+    replyQuoteTextOwn: { color: "rgba(255,255,255,0.85)", fontSize: 12 } as const,
+
     attachmentRow: { flexDirection: "row", alignItems: "center", gap: 8, minWidth: 150 } as const,
-    attachmentIcon: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 9, backgroundColor: t.incoming } as const,
-    attachmentIconOwn: { backgroundColor: "rgba(255,255,255,.22)" } as const,
+    attachmentIcon: { width: 30, height: 30, alignItems: "center", justifyContent: "center", borderRadius: 9, backgroundColor: "rgba(0,0,0,0.06)" } as const,
+    attachmentIconOwn: { backgroundColor: "rgba(255,255,255,0.22)" } as const,
     attachmentText: { flexShrink: 1 } as const,
     fileText: { color: t.accentDark, fontWeight: "700" } as const,
-    image: { width: 220, height: 160, marginBottom: 6, borderRadius: 10, backgroundColor: t.border } as const,
+    image: { width: 210, height: 150, borderRadius: 12, backgroundColor: t.border } as const,
+
+    reactionsRow: { flexDirection: "row", flexWrap: "wrap", gap: 4, marginTop: 3 } as const,
+    reactionsOwn: { alignSelf: "flex-end", marginRight: 2 } as const,
+    reactionsOther: { alignSelf: "flex-start", marginLeft: 2 } as const,
+    reactionChip: { flexDirection: "row", alignItems: "center", gap: 3, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 999, borderWidth: 1, borderColor: t.border, backgroundColor: t.canvas } as const,
+    reactionChipEmoji: { fontSize: 12 } as const,
+    reactionChipCount: { fontSize: 11, fontWeight: "700", color: t.muted } as const,
+
+    metaText: { marginTop: 3, color: t.muted, fontSize: 10.5 } as const,
+    metaOwn: { alignSelf: "flex-end", marginRight: 3 } as const,
+    metaOther: { alignSelf: "flex-start", marginLeft: 4 } as const,
+
     typing: { minHeight: 18, paddingHorizontal: 16, color: t.muted, fontSize: 12 } as const,
     replyBanner: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginHorizontal: 10, padding: 8, borderRadius: 8, backgroundColor: t.accentSoft } as const,
     replyText: { flex: 1, color: t.accentDark, fontSize: 12 } as const,
@@ -473,9 +603,21 @@ function createStyles(t: ResolvedChatGateTheme) {
     error: { margin: 10, borderRadius: 10, padding: 10, backgroundColor: "#fef2f2" } as const,
     errorText: { color: t.danger } as const,
     loadEarlier: { padding: 8, color: t.accent, textAlign: "center" } as const,
+
     viewerBackdrop: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.92)", padding: 12 } as const,
     viewerImage: { width: "100%", height: "82%" } as const,
     viewerClose: { position: "absolute", top: 44, right: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20, backgroundColor: "rgba(255,255,255,0.16)" } as const,
     viewerCloseText: { color: "#fff", fontSize: 20, fontWeight: "700" } as const,
+
+    sheetBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.35)" } as const,
+    sheet: { padding: 8, paddingBottom: 22, borderTopLeftRadius: 22, borderTopRightRadius: 22, backgroundColor: t.surface, gap: 3 } as const,
+    sheetReactions: { flexDirection: "row", justifyContent: "space-around", paddingVertical: 8, marginBottom: 4 } as const,
+    sheetReaction: { width: 46, height: 46, alignItems: "center", justifyContent: "center", borderRadius: 23, backgroundColor: t.canvas } as const,
+    sheetReactionText: { fontSize: 24 } as const,
+    sheetItem: { paddingVertical: 13, paddingHorizontal: 16, borderRadius: 12 } as const,
+    sheetItemText: { color: t.text, fontSize: 15, fontWeight: "600" } as const,
+    sheetCancel: { marginTop: 5, alignItems: "center", backgroundColor: t.canvas } as const,
+    sheetCancelText: { color: t.muted, fontSize: 15, fontWeight: "700" } as const,
+    dangerText: { color: t.danger, fontWeight: "700" } as const,
   };
 }

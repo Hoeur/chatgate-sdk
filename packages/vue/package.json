@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/vue",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Vue 3 bindings for ChatGate.",
   "repository": {
     "type": "git",
@@ -35,7 +35,7 @@
   },
   "license": "SEE LICENSE IN LICENSE",
   "peerDependencies": {
-    "@chatgate/core": "^0.6.3",
+    "@chatgate/core": "^0.6.4",
     "vue": "^3.5.0"
   },
   "devDependencies": {
