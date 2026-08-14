@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   Linking,
+  Platform,
   Pressable,
   Text,
   TextInput,
@@ -137,9 +138,16 @@ export function ChatGateConversation({
 
   const upload = useCallback(async (asset: ChatGateNativeAsset | null) => {
     if (!asset) return;
+    let value: unknown = { uri: asset.uri, name: asset.name, type: asset.mimeType };
+    if (Platform.OS === "web") {
+      // The browser's FormData needs a real Blob; the React Native
+      // { uri, name, type } descriptor only works with RN's own FormData.
+      const response = await fetch(asset.uri);
+      value = await response.blob();
+    }
     await controller.uploadAndSend(
       {
-        value: { uri: asset.uri, name: asset.name, type: asset.mimeType },
+        value,
         name: asset.name,
         mimeType: asset.mimeType,
       },
