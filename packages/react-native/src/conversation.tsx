@@ -4,6 +4,7 @@ import {
   FlatList,
   Image,
   Linking,
+  Modal,
   Platform,
   Pressable,
   Text,
@@ -20,13 +21,13 @@ import {
   type ChatGateParticipantRole,
 } from "@chatgate/core";
 import { useChatGate } from "./context.js";
-import { AttachIcon, BackIcon, ChatIcon, FileIcon, MicIcon, PlayIcon, SendIcon } from "./icons.js";
+import { AttachIcon, BackIcon, ChatIcon, FileIcon, MicIcon, PlayIcon, SendIcon, StopIcon } from "./icons.js";
 import {
   resolveChatGateTheme,
   type ChatGateTheme,
   type ResolvedChatGateTheme,
 } from "./theme.js";
-import type { ChatGateMediaAdapter, ChatGateNativeAsset } from "./types.js";
+import type { ChatGateAudioController, ChatGateMediaAdapter, ChatGateNativeAsset } from "./types.js";
 import { useChatGateConversation } from "./use-conversation.js";
 
 export interface ChatGateConversationProps {
@@ -80,6 +81,9 @@ export function ChatGateConversation({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string>();
   const listRef = useRef<FlatList<ChatGateMessage>>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const playbackRef = useRef<ChatGateAudioController | null>(null);
 
   const t = useMemo(() => resolveChatGateTheme(theme), [theme]);
   const styles = useMemo(() => createStyles(t), [t]);
@@ -87,6 +91,7 @@ export function ChatGateConversation({
   useEffect(() => () => {
     if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
     controller.setTyping(false);
+    void playbackRef.current?.stop();
   }, [controller]);
 
   const updateDraft = useCallback((value: string) => {
@@ -159,6 +164,50 @@ export function ChatGateConversation({
     setReplyTo(undefined);
   }, [controller, replyTo]);
 
+  const stopPlayback = useCallback(async () => {
+    const active = playbackRef.current;
+    playbackRef.current = null;
+    setPlayingVoiceId(null);
+    if (active) {
+      try {
+        await active.stop();
+      } catch {
+        // ignore stop failures
+      }
+    }
+  }, []);
+
+  const togglePlayVoice = useCallback(
+    async (message: ChatGateMessage) => {
+      const uri = message.fileUrl;
+      if (!uri) return;
+      if (playingVoiceId === message.id) {
+        await stopPlayback();
+        return;
+      }
+      await stopPlayback();
+      if (!mediaAdapter?.playVoice) {
+        // No in-app player supplied — fall back to opening the URL externally.
+        void Linking.openURL(uri);
+        return;
+      }
+      setPlayingVoiceId(message.id);
+      try {
+        const handle = await mediaAdapter.playVoice(uri, {
+          onFinish: () => {
+            playbackRef.current = null;
+            setPlayingVoiceId(null);
+          },
+        });
+        playbackRef.current = handle;
+      } catch {
+        setPlayingVoiceId(null);
+        void Linking.openURL(uri);
+      }
+    },
+    [mediaAdapter, playingVoiceId, stopPlayback],
+  );
+
   const renderMessage: ListRenderItem<ChatGateMessage> = useCallback(({ item }) => {
     const own = item.senderId === client.session?.userId;
     const role = resolveMessageRole(item, state.thread);
@@ -174,25 +223,37 @@ export function ChatGateConversation({
         <Pressable style={[styles.bubble, own ? styles.ownBubble : styles.otherBubble, !own ? { borderLeftWidth: 3, borderLeftColor: roleColor.color } : null]} onLongPress={() => setReplyTo(item)}>
           {item.replyTo ? <Text style={own ? styles.ownReply : styles.otherReply}>{messageLabel(item.replyTo)}</Text> : null}
           {item.messageType === "image" && item.fileUrl ? (
-            <Pressable accessibilityRole="imagebutton" onPress={() => void Linking.openURL(item.fileUrl!)}>
+            <Pressable accessibilityRole="imagebutton" accessibilityLabel="Open image" onPress={() => setViewerUri(item.fileUrl!)}>
               <Image source={{ uri: item.fileUrl }} style={styles.image} resizeMode="cover" />
             </Pressable>
           ) : null}
           {item.fileUrl && item.messageType !== "image" ? (
             <Pressable
-              accessibilityRole="link"
+              accessibilityRole="button"
               style={styles.attachmentRow}
-              onPress={() => void Linking.openURL(item.fileUrl!)}
+              onPress={() =>
+                item.messageType === "voice"
+                  ? void togglePlayVoice(item)
+                  : void Linking.openURL(item.fileUrl!)
+              }
             >
               <View style={[styles.attachmentIcon, own && styles.attachmentIconOwn]}>
                 {item.messageType === "voice" ? (
-                  <PlayIcon size={16} color={own ? t.accentText : t.accentDark} />
+                  playingVoiceId === item.id ? (
+                    <StopIcon size={14} color={own ? t.accentText : t.accentDark} />
+                  ) : (
+                    <PlayIcon size={16} color={own ? t.accentText : t.accentDark} />
+                  )
                 ) : (
                   <FileIcon size={16} color={own ? t.accentText : t.accentDark} />
                 )}
               </View>
               <Text numberOfLines={1} style={[styles.attachmentText, own ? styles.ownText : styles.fileText]}>
-                {item.messageType === "voice" ? "Play voice message" : item.fileName ?? "Open attachment"}
+                {item.messageType === "voice"
+                  ? playingVoiceId === item.id
+                    ? "Playing… tap to stop"
+                    : "Play voice message"
+                  : item.fileName ?? "Open attachment"}
               </Text>
             </Pressable>
           ) : null}
@@ -223,7 +284,7 @@ export function ChatGateConversation({
         </View>
       </View>
     );
-  }, [client, controller, state.thread, showRoleBadge, roleLabels, styles, t, confirmDeleteId, startEdit]);
+  }, [client, controller, state.thread, showRoleBadge, roleLabels, styles, t, confirmDeleteId, startEdit, togglePlayVoice, playingVoiceId]);
 
   const assigneeId = state.thread?.assigneeId ?? state.thread?.createdBy?.id;
   const online = assigneeId ? state.onlineUserIds.includes(assigneeId) : false;
@@ -337,6 +398,21 @@ export function ChatGateConversation({
           )}
         </Pressable>
       </View>
+      <Modal
+        visible={viewerUri !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setViewerUri(null)}
+      >
+        <Pressable style={styles.viewerBackdrop} onPress={() => setViewerUri(null)}>
+          {viewerUri ? (
+            <Image source={{ uri: viewerUri }} style={styles.viewerImage} resizeMode="contain" />
+          ) : null}
+          <View style={styles.viewerClose}>
+            <Text style={styles.viewerCloseText}>✕</Text>
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -397,5 +473,9 @@ function createStyles(t: ResolvedChatGateTheme) {
     error: { margin: 10, borderRadius: 10, padding: 10, backgroundColor: "#fef2f2" } as const,
     errorText: { color: t.danger } as const,
     loadEarlier: { padding: 8, color: t.accent, textAlign: "center" } as const,
+    viewerBackdrop: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "rgba(0,0,0,0.92)", padding: 12 } as const,
+    viewerImage: { width: "100%", height: "82%" } as const,
+    viewerClose: { position: "absolute", top: 44, right: 20, width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20, backgroundColor: "rgba(255,255,255,0.16)" } as const,
+    viewerCloseText: { color: "#fff", fontSize: 20, fontWeight: "700" } as const,
   };
 }
