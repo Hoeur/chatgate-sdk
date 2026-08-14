@@ -41,6 +41,13 @@ export interface ChatGateConversationProps {
   roleLabels?: Partial<Record<ChatGateParticipantRole, string>>;
   onBack?: () => void;
   theme?: ChatGateTheme;
+  /**
+   * Header display mode.
+   * - "full" (default): avatar + title + subtitle + presence badge on a solid bar.
+   * - "minimal": just the title (optional back control + tiny presence dot), transparent — no background band.
+   * - "none": no header at all (a bare back control still appears on mobile when onBack is set).
+   */
+  header?: "full" | "minimal" | "none";
 }
 
 type IconName = "attach" | "back" | "chat" | "file" | "image" | "microphone" | "more" | "send" | "stop";
@@ -169,6 +176,44 @@ const styles: Record<string, CSSProperties> = {
     color: "#334155",
     cursor: "pointer",
   },
+  headerMinimal: {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    minHeight: 46,
+    padding: "11px 16px",
+    background: "transparent",
+    borderBottom: "1px solid var(--cg-border, #eef2f8)",
+  },
+  headerMinimalTitle: {
+    overflow: "hidden",
+    flex: 1,
+    fontSize: 14.5,
+    fontWeight: 750,
+    lineHeight: 1.3,
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    color: "var(--cg-text, #14213d)",
+  },
+  headerBackOnly: {
+    display: "flex",
+    alignItems: "center",
+    padding: "7px 12px",
+    background: "transparent",
+  },
+  backButtonGhost: {
+    display: "grid",
+    flex: "0 0 auto",
+    width: 34,
+    height: 34,
+    placeItems: "center",
+    border: 0,
+    borderRadius: 10,
+    background: "transparent",
+    color: "var(--cg-muted, #64748b)",
+    cursor: "pointer",
+  },
+  minimalDot: { width: 8, height: 8, flex: "0 0 auto", borderRadius: 999, background: "#cbd5e1" },
   identity: { display: "flex", alignItems: "center", minWidth: 0, gap: 11 },
   avatar: {
     display: "grid",
@@ -437,6 +482,7 @@ export function ChatGateConversation({
   roleLabels,
   onBack,
   theme,
+  header = "full",
 }: ChatGateConversationProps) {
   const { client } = useChatGate();
   const { controller, state } = useChatGateConversation(conversationId);
@@ -565,36 +611,73 @@ export function ChatGateConversation({
       aria-label={title}
     >
       <style>{componentCss}</style>
-      <header className="cg-chat-header" style={styles.header}>
-        <div style={styles.identity}>
+      {header === "full" ? (
+        <header className="cg-chat-header" style={styles.header}>
+          <div style={styles.identity}>
+            {onBack ? (
+              <button
+                type="button"
+                onClick={onBack}
+                aria-label="Back to conversations"
+                title="Back to conversations"
+                style={styles.backButton}
+              >
+                <Icon name="back" />
+              </button>
+            ) : null}
+            <span aria-hidden="true" style={styles.avatar}><Icon name="chat" size={21} /></span>
+            <span style={styles.identityText}>
+              <span style={styles.title}>{title}</span>
+              <span style={styles.subtitle}>{agentOnline ? "Usually replies instantly" : "We are here to help"}</span>
+            </span>
+          </div>
+          <span style={styles.presence}>
+            <span
+              aria-hidden="true"
+              style={{
+                ...styles.presenceDot,
+                ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
+              }}
+            />
+            {agentOnline ? "Online" : "Support"}
+          </span>
+        </header>
+      ) : header === "minimal" ? (
+        <header className="cg-chat-header" style={styles.headerMinimal}>
           {onBack ? (
             <button
               type="button"
               onClick={onBack}
               aria-label="Back to conversations"
               title="Back to conversations"
-              style={styles.backButton}
+              style={styles.backButtonGhost}
             >
               <Icon name="back" />
             </button>
           ) : null}
-          <span aria-hidden="true" style={styles.avatar}><Icon name="chat" size={21} /></span>
-          <span style={styles.identityText}>
-            <span style={styles.title}>{title}</span>
-            <span style={styles.subtitle}>{agentOnline ? "Usually replies instantly" : "We are here to help"}</span>
-          </span>
-        </div>
-        <span style={styles.presence}>
+          <span style={styles.headerMinimalTitle}>{title}</span>
           <span
             aria-hidden="true"
+            title={agentOnline ? "Online" : "Support"}
             style={{
-              ...styles.presenceDot,
+              ...styles.minimalDot,
               ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
             }}
           />
-          {agentOnline ? "Online" : "Support"}
-        </span>
-      </header>
+        </header>
+      ) : onBack ? (
+        <div className="cg-chat-header" style={styles.headerBackOnly}>
+          <button
+            type="button"
+            onClick={onBack}
+            aria-label="Back to conversations"
+            title="Back to conversations"
+            style={styles.backButtonGhost}
+          >
+            <Icon name="back" />
+          </button>
+        </div>
+      ) : null}
       {state.error || localError ? (
         <div style={styles.error} role="alert">
           <span>{localError ?? state.error?.message}</span>

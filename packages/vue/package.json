@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/vue",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Vue 3 bindings for ChatGate.",
   "repository": {
     "type": "git",
@@ -18,9 +18,14 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "sideEffects": false,
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.json",
@@ -28,9 +33,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm test"
   },
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "peerDependencies": {
-    "@chatgate/core": "^0.5.3",
+    "@chatgate/core": "^0.6.0",
     "vue": "^3.5.0"
   },
   "devDependencies": {

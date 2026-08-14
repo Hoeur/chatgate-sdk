@@ -109,6 +109,17 @@ const styles: Record<string, CSSProperties> = {
     borderBottom: "1px solid var(--cg-border, #e5ebf4)",
     background: "var(--cg-surface, #fff)",
   },
+  sidebarHeaderMinimal: {
+    padding: "16px 18px 15px",
+    borderBottom: "1px solid var(--cg-border, #eef2f8)",
+    background: "transparent",
+  },
+  titleMinimal: { margin: 0, fontSize: 16, fontWeight: 800, lineHeight: 1.25 },
+  searchOnly: {
+    padding: "15px 18px",
+    borderBottom: "1px solid var(--cg-border, #e5ebf4)",
+    background: "var(--cg-surface, #fff)",
+  },
   brandRow: { display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
   title: { margin: 0, fontSize: 19, fontWeight: 800, lineHeight: 1.25 },
   greeting: { margin: "6px 0 0", color: "var(--cg-muted, #64748b)", fontSize: 12, lineHeight: 1.45 },
@@ -254,6 +265,7 @@ function ChatGateConversationNavigator({
   sidebarWidth = 320,
   labels: labelOverrides,
   showBusinessDirectory = true,
+  header = "full",
   ...conversationProps
 }: Omit<ChatGateMessengerProps, "showConversationList" | "conversationId">) {
   const { controller, state } = useChatGateConversationList();
@@ -285,6 +297,20 @@ function ChatGateConversationNavigator({
     ? `${sidebarWidth}px`
     : sidebarWidth;
 
+  const searchField = (
+    <div style={styles.searchWrap}>
+      <span style={styles.searchIcon}><Icon name="search" /></span>
+      <input
+        type="search"
+        value={search}
+        onChange={(event) => setSearch(event.currentTarget.value)}
+        placeholder={labels.searchPlaceholder}
+        aria-label={labels.searchPlaceholder}
+        style={styles.search}
+      />
+    </div>
+  );
+
   return (
     <section
       data-chatgate-messenger=""
@@ -295,26 +321,25 @@ function ChatGateConversationNavigator({
     >
       <style>{messengerCss}</style>
       <aside className="cg-messenger-sidebar" style={styles.sidebar} aria-label={labels.conversations}>
-        <header style={styles.sidebarHeader}>
-          <div style={styles.brandRow}>
-            <div>
-              <h2 style={styles.title}>{title}</h2>
-              <p style={styles.greeting}>{greeting ?? `Your conversations with ${title}.`}</p>
+        {header === "full" ? (
+          <header style={styles.sidebarHeader}>
+            <div style={styles.brandRow}>
+              <div>
+                <h2 style={styles.title}>{title}</h2>
+                <p style={styles.greeting}>{greeting ?? `Your conversations with ${title}.`}</p>
+              </div>
+              <span style={styles.online}><span aria-hidden="true" style={styles.onlineDot} />{labels.online}</span>
             </div>
-            <span style={styles.online}><span aria-hidden="true" style={styles.onlineDot} />{labels.online}</span>
-          </div>
-          <div style={styles.searchWrap}>
-            <span style={styles.searchIcon}><Icon name="search" /></span>
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.currentTarget.value)}
-              placeholder={labels.searchPlaceholder}
-              aria-label={labels.searchPlaceholder}
-              style={styles.search}
-            />
-          </div>
-        </header>
+            {searchField}
+          </header>
+        ) : header === "minimal" ? (
+          <header style={styles.sidebarHeaderMinimal}>
+            <h2 style={styles.titleMinimal}>{title}</h2>
+            {searchField}
+          </header>
+        ) : (
+          <div style={styles.searchOnly}>{searchField}</div>
+        )}
         <div style={styles.body} aria-busy={state.loading || state.switching}>
           {state.error ? (
             <div role="alert" style={styles.error}>
@@ -366,6 +391,7 @@ function ChatGateConversationNavigator({
             conversationId={state.selectedConversationId}
             title={unitName(selectedConversation?.businessUnit, title)}
             {...(theme ? { theme } : {})}
+            header={header}
             style={{ width: "100%", minHeight: 0, height: "100%", maxHeight: "none", border: 0, borderRadius: 0, boxShadow: "none" }}
             onBack={() => void controller.showList()}
           />

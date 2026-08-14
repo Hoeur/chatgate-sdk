@@ -81,6 +81,8 @@ const styles: Record<string, CSSProperties> = {
     borderBottom: "1px solid var(--cg-border, #e5ebf4)",
     background: "var(--cg-surface, #fff)",
   },
+  headerMinimal: { display: "flex", alignItems: "center", gap: "10px", padding: "11px 14px", borderBottom: "1px solid var(--cg-border, #e5ebf4)", background: "var(--cg-surface, #fff)" },
+  headerBackOnly: { display: "flex", padding: "8px 12px", background: "var(--cg-surface, #fff)" },
   identity: { display: "flex", alignItems: "center", minWidth: "0", gap: "11px" },
   backButton: {
     display: "grid",
@@ -239,6 +241,7 @@ export const ChatGateConversation = defineComponent({
     renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole) => VNodeChild>,
     showRoleBadge: { type: Boolean, default: true },
     roleLabels: Object as PropType<Partial<Record<ChatGateParticipantRole, string>>>,
+    header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
     onBack: Function as PropType<() => void>,
   },
   setup(props) {
@@ -429,22 +432,36 @@ export const ChatGateConversation = defineComponent({
       const typing = state.value.typingUsers[0];
       return h("section", { "data-chatgate-conversation": "", style: styles.root, "aria-label": props.title }, [
         h("style", componentCss),
-        h("header", { class: "cg-chat-header", style: styles.header }, [
-          h("div", { style: styles.identity }, [
-            props.onBack
-              ? h("button", { type: "button", "aria-label": "Back to conversations", title: "Back to conversations", style: styles.backButton, onClick: props.onBack }, [icon("back")])
-              : null,
-            h("span", { "aria-hidden": "true", style: styles.avatar }, [icon("chat", 21)]),
-            h("span", { style: styles.identityText }, [
-              h("span", { style: styles.title }, props.title),
-              h("span", { style: styles.subtitle }, online ? "Usually replies instantly" : "We are here to help"),
-            ]),
-          ]),
-          h("span", { style: styles.presence }, [
-            h("span", { "aria-hidden": "true", style: { ...styles.presenceDot, ...(online ? styles.presenceDotOnline : {}) } }),
-            online ? "Online" : "Support",
-          ]),
-        ]),
+        props.header === "none"
+          ? (props.onBack
+              ? h("header", { style: styles.headerBackOnly }, [
+                  h("button", { type: "button", "aria-label": "Back to conversations", title: "Back to conversations", style: styles.backButton, onClick: props.onBack }, [icon("back")]),
+                ])
+              : null)
+          : props.header === "minimal"
+            ? h("header", { class: "cg-chat-header", style: styles.headerMinimal }, [
+                props.onBack
+                  ? h("button", { type: "button", "aria-label": "Back to conversations", title: "Back to conversations", style: styles.backButton, onClick: props.onBack }, [icon("back")])
+                  : null,
+                h("span", { style: { ...styles.title, flex: "1" } }, props.title),
+                h("span", { "aria-hidden": "true", style: { ...styles.presenceDot, ...(online ? styles.presenceDotOnline : {}) } }),
+              ])
+            : h("header", { class: "cg-chat-header", style: styles.header }, [
+                h("div", { style: styles.identity }, [
+                  props.onBack
+                    ? h("button", { type: "button", "aria-label": "Back to conversations", title: "Back to conversations", style: styles.backButton, onClick: props.onBack }, [icon("back")])
+                    : null,
+                  h("span", { "aria-hidden": "true", style: styles.avatar }, [icon("chat", 21)]),
+                  h("span", { style: styles.identityText }, [
+                    h("span", { style: styles.title }, props.title),
+                    h("span", { style: styles.subtitle }, online ? "Usually replies instantly" : "We are here to help"),
+                  ]),
+                ]),
+                h("span", { style: styles.presence }, [
+                  h("span", { "aria-hidden": "true", style: { ...styles.presenceDot, ...(online ? styles.presenceDotOnline : {}) } }),
+                  online ? "Online" : "Support",
+                ]),
+              ]),
         state.value.error || localError.value
           ? h("div", { role: "alert", style: styles.error }, [
               h("span", localError.value ?? state.value.error?.message),

@@ -26,3 +26,4 @@ export type {
   ChatGatePushAdapter,
   ChatGatePushToken,
 } from "./types.js";
+export { type ChatGateTheme } from "./theme.js";

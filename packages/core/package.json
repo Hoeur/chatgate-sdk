@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/core",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "Framework-independent ChatGate client for web, React Native, Next.js, Vue, and other JavaScript runtimes.",
   "repository": {
     "type": "git",
@@ -45,7 +45,7 @@
     "nextjs",
     "vue"
   ],
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "socket.io-client": "^4.8.3"
   },

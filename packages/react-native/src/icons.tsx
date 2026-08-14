@@ -85,7 +85,7 @@ export function StopIcon({ color = "#b91c1c", size = 20, style }: IconProps) {
   );
 }
 
-export function FileIcon({ color = "#1d4ed8", size = 20, style }: IconProps) {
+export function FileIcon({ color = "#0c8a5f", size = 20, style }: IconProps) {
   return (
     <View style={[{ width: size, height: size, alignItems: "center", justifyContent: "center" }, style]}>
       <View
@@ -108,7 +108,7 @@ export function FileIcon({ color = "#1d4ed8", size = 20, style }: IconProps) {
   );
 }
 
-export function PlayIcon({ color = "#1d4ed8", size = 20, style }: IconProps) {
+export function PlayIcon({ color = "#0c8a5f", size = 20, style }: IconProps) {
   return (
     <View style={[{ width: size, height: size, alignItems: "center", justifyContent: "center" }, style]}>
       <View
@@ -177,6 +177,39 @@ export function ChatIcon({ color = "#fff", size = 20, style }: IconProps) {
           borderRightWidth: size * 0.18,
           borderTopColor: color,
           borderRightColor: "transparent",
+        }}
+      />
+    </View>
+  );
+}
+
+export function SearchIcon({ color = "#52627a", size = 20, style }: IconProps) {
+  const ring = size * 0.6;
+  const stroke = Math.max(1, size * 0.1);
+  return (
+    <View style={[{ width: size, height: size }, style]}>
+      <View
+        style={{
+          position: "absolute",
+          top: size * 0.08,
+          left: size * 0.08,
+          width: ring,
+          height: ring,
+          borderRadius: ring / 2,
+          borderWidth: stroke,
+          borderColor: color,
+        }}
+      />
+      <View
+        style={{
+          position: "absolute",
+          bottom: size * 0.07,
+          right: size * 0.06,
+          width: size * 0.32,
+          height: stroke,
+          borderRadius: stroke,
+          backgroundColor: color,
+          transform: [{ rotate: "45deg" }],
         }}
       />
     </View>
