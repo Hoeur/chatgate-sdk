@@ -228,6 +228,10 @@ export interface ChatGateClientOptions {
   channel?: string;
   roomId?: string;
   businessUnitExternalId?: string;
+  /** Business unit type sent to the embed endpoint (e.g. "MERCHANT"); used when the unit is registered/created. */
+  businessType?: string;
+  /** Visitor user agent. Defaults to navigator.userAgent on web; pass explicitly on React Native (no browser UA). */
+  userAgent?: string;
   fetch?: ChatGateFetch;
   socketFactory?: ChatGateSocketFactory;
   logger?: ChatGateLogger;
