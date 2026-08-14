@@ -103,12 +103,6 @@ function browserVisitorContext(): Record<string, string | number | undefined> {
   };
 }
 
-function resolveUserAgent(explicit?: string): string | undefined {
-  if (explicit && explicit.trim()) return explicit.trim();
-  const nav = (globalThis as { navigator?: { userAgent?: string } }).navigator;
-  return nav?.userAgent ?? undefined;
-}
-
 function createQuery(values: Record<string, string | number | undefined>): string {
   const entries = Object.entries(values).filter((entry): entry is [string, string | number] => entry[1] !== undefined);
   if (entries.length === 0) return "";
@@ -199,12 +193,10 @@ export class ChatGateClient {
           organizationId: options.organizationId,
           roomId: options.roomId,
           businessUnitExternalId: businessUnitExternalId ?? options.businessUnitExternalId,
-          businessType: options.businessType,
           channel: options.channel ?? "WEB_WIDGET",
           externalUserId: userId,
           name: options.userName,
           userHash: options.userHash,
-          userAgent: resolveUserAgent(options.userAgent),
           visitorSessionId,
           visitorEventId,
           ...browserVisitorContext(),
