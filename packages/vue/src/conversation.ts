@@ -1,8 +1,11 @@
 import {
   defineComponent,
   h,
+  nextTick,
+  onMounted,
   onUnmounted,
   ref,
+  watch,
   type CSSProperties,
   type PropType,
   type VNodeChild,
@@ -256,6 +259,38 @@ export const ChatGateConversation = defineComponent({
     let recorder: MediaRecorder | undefined;
     let recordingStream: MediaStream | undefined;
     let recordingChunks: Blob[] = [];
+    const messagesElement = ref<HTMLElement>();
+    const previousMessages = ref<{
+      conversationId: string | undefined;
+      firstId: string | undefined;
+      lastId: string | undefined;
+      count: number;
+    }>();
+
+    function scrollMessages() {
+      const element = messagesElement.value;
+      if (!element) return;
+      const messages = state.value.messages;
+      const previous = previousMessages.value;
+      const firstId = messages[0]?.id;
+      const lastMessage = messages[messages.length - 1];
+      const prepended = previous
+        && previous.lastId === lastMessage?.id
+        && previous.firstId !== firstId
+        && messages.length > previous.count;
+      const conversationChanged = previous?.conversationId !== state.value.conversationId;
+      const newMessage = previous && previous.lastId !== lastMessage?.id && !prepended;
+      const nearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+      if (!previous || conversationChanged || (newMessage && (nearBottom || lastMessage?.senderId === client.session?.userId))) {
+        element.scrollTop = element.scrollHeight;
+      }
+      previousMessages.value = {
+        conversationId: state.value.conversationId,
+        firstId,
+        lastId: lastMessage?.id,
+        count: messages.length,
+      };
+    }
 
     function setTyping(value: string) {
       draft.value = value;
@@ -354,6 +389,11 @@ export const ChatGateConversation = defineComponent({
       }
       recordingStream?.getTracks().forEach((track) => track.stop());
     });
+    onMounted(() => void nextTick(scrollMessages));
+    watch(
+      () => [state.value.conversationId, state.value.messages] as const,
+      () => void nextTick(scrollMessages),
+    );
 
     function defaultMessage(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole): VNodeChild {
       const roleColor = ROLE_BADGE_COLORS[role];
@@ -468,7 +508,7 @@ export const ChatGateConversation = defineComponent({
               state.value.error ? h("button", { type: "button", style: styles.retryButton, onClick: () => void controller.reload() }, "Retry") : null,
             ])
           : null,
-        h("div", { class: "cg-message-list", style: styles.messages, "aria-live": "polite", "aria-busy": state.value.loading }, [
+        h("div", { ref: messagesElement, class: "cg-message-list", style: styles.messages, "aria-live": "polite", "aria-busy": state.value.loading }, [
           state.value.thread?.nextCursor
             ? h("button", { type: "button", style: styles.loadEarlier, disabled: state.value.loadingOlder, onClick: () => void controller.loadOlder() }, state.value.loadingOlder ? "Loading…" : "Load earlier messages")
             : null,
