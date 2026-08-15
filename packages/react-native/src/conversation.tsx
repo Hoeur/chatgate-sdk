@@ -407,12 +407,12 @@ export function ChatGateConversation({
       ) : null}
       <View style={styles.composer}>
         {mediaAdapter && !editing ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Attach file" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.pickAttachment().then(upload)}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Attach file" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.pickAttachment().then(upload).catch(() => undefined)}>
             <AttachIcon size={19} color={t.accentDark} />
           </Pressable>
         ) : null}
         {mediaAdapter?.recordVoice && !editing ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Record voice message" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.recordVoice!().then(upload)}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Record voice message" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.recordVoice!().then(upload).catch(() => undefined)}>
             <MicIcon size={19} color={t.accentDark} />
           </Pressable>
         ) : null}

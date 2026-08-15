@@ -39,6 +39,7 @@ function updateConversationFromMessage(
   selectedConversationId: string | undefined,
 ): ChatGateConversation {
   if (conversation.id !== message.inboxConversationId) return conversation;
+  if (conversation.lastMessage?.id === message.id) return conversation;
   const isIncoming = message.senderId !== currentUserId;
   const isOpen = conversation.id === selectedConversationId;
   return {
@@ -46,7 +47,11 @@ function updateConversationFromMessage(
     lastMessageAt: message.createdAt,
     lastMessage: message,
     messageCount: (conversation.messageCount ?? 0) + 1,
-    unreadCount: isIncoming && !isOpen ? (conversation.unreadCount ?? 0) + 1 : 0,
+    unreadCount: isIncoming
+      ? isOpen
+        ? 0
+        : (conversation.unreadCount ?? 0) + 1
+      : conversation.unreadCount ?? 0,
   };
 }
 
@@ -151,7 +156,13 @@ export class ChatGateConversationListController {
     if (!normalized) {
       throw new ChatGateError("CONVERSATION_REQUIRED", "conversationId is required");
     }
-    this.patch({ selectedConversationId: normalized, error: undefined });
+    this.patch({
+      selectedConversationId: normalized,
+      conversations: this.state.conversations.map((conversation) =>
+        conversation.id === normalized ? { ...conversation, unreadCount: 0 } : conversation,
+      ),
+      error: undefined,
+    });
   }
 
   async showList(): Promise<void> {

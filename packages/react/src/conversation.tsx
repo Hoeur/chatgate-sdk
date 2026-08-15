@@ -496,6 +496,13 @@ export function ChatGateConversation({
   const recorderRef = useRef<MediaRecorder | undefined>(undefined);
   const recordingStreamRef = useRef<MediaStream | undefined>(undefined);
   const recordingChunksRef = useRef<Blob[]>([]);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const previousMessagesRef = useRef<{
+    conversationId: string | undefined;
+    firstId: string | undefined;
+    lastId: string | undefined;
+    count: number;
+  }>(undefined);
   const assigneeId = state.thread?.assigneeId ?? state.thread?.createdBy?.id;
   const agentOnline = assigneeId ? state.onlineUserIds.includes(assigneeId) : false;
 
@@ -508,6 +515,32 @@ export function ChatGateConversation({
     }
     recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
   }, []);
+
+  useEffect(() => {
+    const element = messagesRef.current;
+    const messages = state.messages;
+    if (!element) return;
+    const previous = previousMessagesRef.current;
+    const firstId = messages[0]?.id;
+    const lastMessage = messages[messages.length - 1];
+    const prepended = previous
+      && previous.lastId === lastMessage?.id
+      && previous.firstId !== firstId
+      && messages.length > previous.count;
+    const conversationChanged = previous?.conversationId !== state.conversationId;
+    const newMessage = previous && previous.lastId !== lastMessage?.id && !prepended;
+    const nearBottom = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!previous || conversationChanged || (newMessage && (nearBottom || lastMessage?.senderId === client.session?.userId))) {
+      element.scrollTo({ top: element.scrollHeight, behavior: reducedMotion ? "auto" : "smooth" });
+    }
+    previousMessagesRef.current = {
+      conversationId: state.conversationId,
+      firstId,
+      lastId: lastMessage?.id,
+      count: messages.length,
+    };
+  }, [client.session?.userId, state.conversationId, state.messages]);
 
   function notifyTyping(value: string) {
     setDraft(value);
@@ -684,7 +717,7 @@ export function ChatGateConversation({
           {state.error ? <button type="button" style={styles.retryButton} onClick={() => void controller.reload()}>Retry</button> : null}
         </div>
       ) : null}
-      <div className="cg-message-list" style={styles.messages} aria-live="polite" aria-busy={state.loading}>
+      <div ref={messagesRef} className="cg-message-list" style={styles.messages} aria-live="polite" aria-busy={state.loading}>
         {state.thread?.nextCursor ? (
           <button style={styles.loadEarlier} type="button" disabled={state.loadingOlder} onClick={() => void controller.loadOlder()}>
             {state.loadingOlder ? "Loading..." : "Load earlier messages"}

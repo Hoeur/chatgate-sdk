@@ -10,7 +10,7 @@ import {
   type ChatGateConversationListController,
   type ChatGateConversationListState,
 } from "@chatgate/core";
-import { useChatGate } from "./plugin.js";
+import { startChatGateClientIfNeeded, useChatGate } from "./plugin.js";
 
 export interface UseChatGateConversationListResult {
   controller: ChatGateConversationListController;
@@ -25,7 +25,10 @@ export function useChatGateConversationList(): UseChatGateConversationListResult
     state.value = controller.getSnapshot();
   });
 
-  onMounted(() => void controller.start());
+  onMounted(() => {
+    void startChatGateClientIfNeeded(client);
+    void controller.start();
+  });
   onUnmounted(() => {
     unsubscribe();
     controller.stop();

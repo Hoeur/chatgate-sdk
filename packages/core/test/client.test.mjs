@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { mock } from "node:test";
 import {
   ChatGateError,
   createChatGateClient,
@@ -449,12 +449,212 @@ test("conversation list controller loads merchants, switches conversations, and 
 
   controller.selectConversation("conversation-1");
   assert.equal(controller.getSnapshot().selectedConversationId, "conversation-1");
+  assert.equal(controller.getSnapshot().conversations[0].unreadCount, 0);
+  socket.trigger("new_dm", {
+    dm: {
+      id: "message-list-1",
+      content: "New merchant reply",
+      messageType: "text",
+      senderId: "agent-1",
+      receiverId: "visitor-1",
+      inboxConversationId: "conversation-1",
+      read: false,
+      createdAt: new Date(1_000).toISOString(),
+    },
+  });
+  assert.equal(controller.getSnapshot().conversations[0].messageCount, 2);
+  assert.equal(controller.getSnapshot().conversations[0].unreadCount, 0);
   await controller.selectBusinessUnit("merchant-two");
   assert.equal(controller.getSnapshot().selectedConversationId, "conversation-2");
   assert.equal(contexts.at(-1).businessUnitExternalId, "merchant-two");
 
   await controller.showList();
   assert.equal(controller.getSnapshot().selectedConversationId, undefined);
+  controller.stop();
+  client.stop();
+});
+
+test("waits for an in-flight refresh before switching business units", async () => {
+  const socket = new FakeSocket();
+  const calls = [];
+  const pending = [];
+  const client = createChatGateClient({
+    baseUrl: "https://api.example.test",
+    sessionProvider: async (context) => {
+      calls.push(context);
+      return new Promise((resolve) => pending.push(resolve));
+    },
+    socketFactory: () => socket,
+    fetch: async () => response(200, {}),
+  });
+
+  const initial = client.refreshSession(false);
+  await Promise.resolve();
+  const switched = client.switchBusinessUnit("merchant-two");
+  await Promise.resolve();
+  assert.deepEqual(calls, [{ forceRefresh: false }]);
+  pending.shift()({ ...session, accessToken: "old-token" });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.deepEqual(calls, [
+    { forceRefresh: false },
+    { forceRefresh: true, businessUnitExternalId: "merchant-two" },
+  ]);
+  pending.shift()({
+    ...session,
+    accessToken: "new-token",
+    conversationId: "conversation-2",
+  });
+
+  assert.equal((await initial).accessToken, "old-token");
+  assert.equal((await switched).accessToken, "new-token");
+  assert.equal(client.session.accessToken, "new-token");
+  client.stop();
+});
+
+test("ignores stale loadOlder responses after changing conversations", async () => {
+  const socket = new FakeSocket();
+  const requests = [];
+  const pending = [];
+  const thread = (id, messages, nextCursor = null) => ({
+    id,
+    status: "OPEN",
+    createdAt: new Date(0).toISOString(),
+    lastMessageAt: new Date(2_000).toISOString(),
+    messages,
+    nextCursor,
+  });
+  const message = (id, createdAt) => ({
+    id,
+    content: id,
+    messageType: "text",
+    senderId: "agent-1",
+    receiverId: "visitor-1",
+    inboxConversationId: "conversation-1",
+    read: false,
+    createdAt: new Date(createdAt).toISOString(),
+  });
+  const client = createChatGateClient({
+    baseUrl: "https://api.example.test",
+    sessionProvider: async () => session,
+    socketFactory: () => socket,
+    fetch: async (url) => {
+      if (!url.includes("/inbox/conversations/")) return response(200, {});
+      const item = {};
+      const result = new Promise((resolve) => { item.resolve = resolve; });
+      requests.push({ url, item });
+      return result;
+    },
+  });
+  await client.start();
+  const controller = createChatGateConversationController(client, "conversation-1");
+  const started = controller.start();
+  await Promise.resolve();
+  requests[0].item.resolve(response(200, thread("conversation-1", [message("current", 2_000)], "older")));
+  await started;
+
+  const older = controller.loadOlder();
+  await Promise.resolve();
+  const changed = controller.setConversation("conversation-2");
+  await Promise.resolve();
+  requests[2].item.resolve(response(200, thread("conversation-2", [message("new", 3_000)])));
+  await changed;
+  requests[1].item.resolve(response(200, thread("conversation-1", [message("old", 1_000)])));
+  await older;
+
+  assert.deepEqual(controller.getSnapshot().messages.map(({ id }) => id), ["new"]);
+  controller.stop();
+  client.stop();
+});
+
+test("deduplicates and expires conversation typing state", async () => {
+  mock.timers.enable({ apis: ["setTimeout"] });
+  try {
+    const socket = new FakeSocket();
+    const client = createChatGateClient({
+      baseUrl: "https://api.example.test",
+      sessionProvider: async () => session,
+      socketFactory: () => socket,
+      fetch: async () => response(200, {
+        id: "conversation-1",
+        status: "OPEN",
+        createdAt: new Date(0).toISOString(),
+        lastMessageAt: new Date(0).toISOString(),
+        assigneeId: "agent-1",
+        messages: [],
+        nextCursor: null,
+      }),
+    });
+    await client.start();
+    const controller = createChatGateConversationController(client);
+    await controller.start();
+
+    controller.setTyping(true);
+    controller.setTyping(true);
+    assert.equal(socket.emitted.filter(([event]) => event === "dm_typing_start").length, 1);
+    mock.timers.tick(2_999);
+    assert.equal(socket.emitted.filter(([event]) => event === "dm_typing_stop").length, 0);
+    mock.timers.tick(1);
+    assert.equal(socket.emitted.filter(([event]) => event === "dm_typing_stop").length, 1);
+
+    socket.trigger("dm_typing", { userId: "agent-1", username: "Agent", isTyping: true });
+    assert.equal(controller.getSnapshot().typingUsers.length, 1);
+    mock.timers.tick(5_000);
+    assert.equal(controller.getSnapshot().typingUsers.length, 0);
+
+    socket.trigger("dm_typing", { userId: "agent-1", username: "Agent", isTyping: true });
+    socket.trigger("disconnect", "network");
+    assert.equal(controller.getSnapshot().typingUsers.length, 0);
+    controller.stop();
+    client.stop();
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("preserves messages received while reload is in flight", async () => {
+  const socket = new FakeSocket();
+  let resolveFetch;
+  const client = createChatGateClient({
+    baseUrl: "https://api.example.test",
+    sessionProvider: async () => session,
+    socketFactory: () => socket,
+    fetch: async () => new Promise((resolve) => { resolveFetch = resolve; }),
+  });
+  await client.start();
+  const controller = createChatGateConversationController(client);
+  const loading = controller.start();
+  await Promise.resolve();
+  socket.trigger("new_dm", {
+    dm: {
+      id: "live-message",
+      content: "Live",
+      messageType: "text",
+      senderId: "agent-1",
+      receiverId: "visitor-1",
+      inboxConversationId: "conversation-1",
+      read: false,
+      createdAt: new Date(2_000).toISOString(),
+    },
+  });
+  resolveFetch(response(200, {
+    id: "conversation-1",
+    status: "OPEN",
+    createdAt: new Date(0).toISOString(),
+    lastMessageAt: new Date(1_000).toISOString(),
+    messages: [{
+      id: "fetched-message",
+      content: "Fetched",
+      messageType: "text",
+      senderId: "agent-1",
+      receiverId: "visitor-1",
+      inboxConversationId: "conversation-1",
+      read: false,
+      createdAt: new Date(1_000).toISOString(),
+    }],
+    nextCursor: null,
+  }));
+  await loading;
+  assert.deepEqual(controller.getSnapshot().messages.map(({ id }) => id), ["fetched-message", "live-message"]);
   controller.stop();
   client.stop();
 });
