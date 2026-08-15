@@ -56,6 +56,9 @@ export class ChatGateConversationController {
   private cleanups: Array<() => void> = [];
   private started = false;
   private loadSequence = 0;
+  private readonly typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private typingState = false;
+  private typingStopTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(client: ChatGateClient, conversationId?: string) {
     this.client = client;
@@ -107,7 +110,25 @@ export class ChatGateConversationController {
       }),
       this.client.on("typing", (event) => {
         if (event.userId === this.client.session?.userId) return;
+        const existingTimer = this.typingTimers.get(event.userId);
+        if (existingTimer) clearTimeout(existingTimer);
+        if (event.isTyping) {
+          const timer = setTimeout(() => {
+            this.typingTimers.delete(event.userId);
+            this.patch({
+              typingUsers: this.state.typingUsers.filter((item) => item.userId !== event.userId),
+            });
+          }, 5_000);
+          (timer as unknown as { unref?: () => void }).unref?.();
+          this.typingTimers.set(event.userId, timer);
+        } else {
+          this.typingTimers.delete(event.userId);
+        }
         this.patch({ typingUsers: updateTypingUsers(this.state.typingUsers, event) });
+      }),
+      this.client.on("disconnected", () => {
+        this.clearTypingTimers();
+        this.patch({ typingUsers: [] });
       }),
       this.client.on("presence", ({ userIds }) => {
         this.patch({ onlineUserIds: userIds });
@@ -136,9 +157,10 @@ export class ChatGateConversationController {
   }
 
   stop(): void {
-    this.setTyping(false);
+    this.resetTyping();
     this.started = false;
     this.loadSequence += 1;
+    this.clearTypingTimers();
     for (const cleanup of this.cleanups) cleanup();
     this.cleanups = [];
   }
@@ -147,6 +169,8 @@ export class ChatGateConversationController {
     const normalized = conversationId.trim();
     if (!normalized) throw new ChatGateError("CONVERSATION_REQUIRED", "conversationId is required");
     if (normalized === this.state.conversationId && this.state.thread) return;
+    this.resetTyping();
+    this.clearTypingTimers();
     this.state = {
       conversationId: normalized,
       messages: [],
@@ -176,7 +200,10 @@ export class ChatGateConversationController {
     try {
       const thread = await this.client.getConversation(conversationId);
       if (sequence !== this.loadSequence) return;
-      this.patch({ thread, messages: thread.messages, loading: false });
+      const fetchedIds = new Set(thread.messages.map((message) => message.id));
+      const messages = [...thread.messages, ...this.state.messages.filter((message) => !fetchedIds.has(message.id))]
+        .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt));
+      this.patch({ thread: { ...thread, messages }, messages, loading: false });
       void this.markRead().catch(() => undefined);
     } catch (error) {
       if (sequence !== this.loadSequence) return;
@@ -188,9 +215,11 @@ export class ChatGateConversationController {
     const conversationId = this.state.conversationId ?? this.client.conversationId;
     const cursor = this.state.thread?.nextCursor;
     if (!conversationId || !cursor || this.state.loadingOlder) return;
+    const sequence = this.loadSequence;
     this.patch({ loadingOlder: true, error: undefined });
     try {
       const page = await this.client.getConversation(conversationId, { cursor });
+      if (sequence !== this.loadSequence) return;
       this.patch({
         thread: this.state.thread
           ? {
@@ -202,6 +231,7 @@ export class ChatGateConversationController {
         loadingOlder: false,
       });
     } catch (error) {
+      if (sequence !== this.loadSequence) return;
       this.patch({ loadingOlder: false, error: normalizeError(error) });
     }
   }
@@ -214,7 +244,7 @@ export class ChatGateConversationController {
         ...input,
         ...(conversationId ? { conversationId } : {}),
       });
-      this.setTyping(false);
+      this.resetTyping();
       this.patch({ messages: appendUnique(this.state.messages, message), sending: false });
       return message;
     } catch (error) {
@@ -235,7 +265,7 @@ export class ChatGateConversationController {
         ...input,
         ...(conversationId ? { conversationId } : {}),
       });
-      this.setTyping(false);
+      this.resetTyping();
       this.patch({
         messages: appendUnique(this.state.messages, result.message),
         sending: false,
@@ -250,8 +280,38 @@ export class ChatGateConversationController {
   }
 
   setTyping(isTyping: boolean): void {
+    if (this.typingState === isTyping) {
+      if (isTyping) this.scheduleTypingStop();
+      return;
+    }
+    this.typingState = isTyping;
     const receiverId = this.state.thread?.assigneeId ?? this.state.thread?.createdBy?.id;
     if (typeof receiverId === "string") this.client.setTyping(receiverId, isTyping);
+    if (isTyping) this.scheduleTypingStop();
+  }
+
+  private scheduleTypingStop(): void {
+    if (this.typingStopTimer) clearTimeout(this.typingStopTimer);
+    this.typingStopTimer = setTimeout(() => {
+      this.typingStopTimer = undefined;
+      this.setTyping(false);
+    }, 3_000);
+    (this.typingStopTimer as unknown as { unref?: () => void }).unref?.();
+  }
+
+  private resetTyping(): void {
+    if (this.typingStopTimer) clearTimeout(this.typingStopTimer);
+    this.typingStopTimer = undefined;
+    if (this.typingState) {
+      const receiverId = this.state.thread?.assigneeId ?? this.state.thread?.createdBy?.id;
+      if (typeof receiverId === "string") this.client.setTyping(receiverId, false);
+    }
+    this.typingState = false;
+  }
+
+  private clearTypingTimers(): void {
+    for (const timer of this.typingTimers.values()) clearTimeout(timer);
+    this.typingTimers.clear();
   }
 
   async markRead(): Promise<number> {

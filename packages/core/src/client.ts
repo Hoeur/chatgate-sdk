@@ -17,6 +17,7 @@ import type {
   ChatGateResponse,
   ChatGateSendMessageInput,
   ChatGateSession,
+  ChatGateSessionContext,
   ChatGateSessionProvider,
   ChatGateSocket,
   ChatGateSocketFactory,
@@ -144,6 +145,7 @@ export class ChatGateClient {
   private readonly listeners = new Map<ChatGateEventName, Set<Listener>>();
   private sessionValue: ChatGateSession | undefined;
   private sessionPromise: Promise<ChatGateSession> | undefined;
+  private sessionPromiseContext: ChatGateSessionContext | undefined;
   private socket: ChatGateSocket | undefined;
   private refreshTimer: ReturnType<typeof setTimeout> | undefined;
   private activeBusinessUnitExternalId?: string;
@@ -244,17 +246,25 @@ export class ChatGateClient {
   }
 
   async refreshSession(forceRefresh = true): Promise<ChatGateSession> {
-    if (this.sessionPromise) return this.sessionPromise;
-    if (!forceRefresh && this.sessionValue && !this.sessionNeedsRefresh(this.sessionValue)) {
-      return this.sessionValue;
-    }
-
     const context = {
       forceRefresh,
       ...(this.activeBusinessUnitExternalId
         ? { businessUnitExternalId: this.activeBusinessUnitExternalId }
         : {}),
     };
+    if (this.sessionPromise) {
+      const sameContext = this.sessionPromiseContext?.forceRefresh === false
+        && context.forceRefresh === false
+        && this.sessionPromiseContext.businessUnitExternalId === context.businessUnitExternalId;
+      if (sameContext) return this.sessionPromise;
+      await this.sessionPromise.catch(() => undefined);
+      return this.refreshSession(forceRefresh);
+    }
+    if (!forceRefresh && this.sessionValue && !this.sessionNeedsRefresh(this.sessionValue)) {
+      return this.sessionValue;
+    }
+
+    this.sessionPromiseContext = context;
     this.sessionPromise = this.sessionProvider(context)
       .then((session) => {
         this.validateSession(session);
@@ -275,6 +285,7 @@ export class ChatGateClient {
       })
       .finally(() => {
         this.sessionPromise = undefined;
+        this.sessionPromiseContext = undefined;
       });
     return this.sessionPromise;
   }

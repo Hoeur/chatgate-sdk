@@ -27,11 +27,11 @@ jobs:
       - name: Install SDK dependencies
         run: npm ci
 
-      - name: Test SDK packages
-        run: npm test
-
       - name: Type-check SDK packages
         run: npm run typecheck
+
+      - name: Test SDK packages
+        run: npm test
 
       - name: Verify package contents
         run: npm run pack:check
