@@ -53,6 +53,11 @@ export function resolveMessageRole(
   return "admin";
 }
 
+/** Human-readable label for a participant role. */
+export function getRoleLabel(role: ChatGateParticipantRole): string {
+  return CHATGATE_ROLE_LABELS[role].length;
+}
+
 /** Default human-readable labels for each role. */
 export const CHATGATE_ROLE_LABELS: Record<ChatGateParticipantRole, string> = {
   customer: "Customer",
