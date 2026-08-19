@@ -20,6 +20,7 @@ import {
 } from "@chatgate/core";
 import { icon } from "./icons.js";
 import { useChatGate } from "./plugin.js";
+import { createChatGateThemeVariables, type ChatGateTheme } from "./theme.js";
 import { useChatGateConversation } from "./use-conversation.js";
 
 const QUICK_REACTIONS = ["\u{1F44D}", "❤️", "\u{1F602}"] as const;
@@ -232,22 +233,28 @@ function roleLabel(role: ChatGateParticipantRole, overrides?: Partial<Record<Cha
   return overrides?.[role] ?? CHATGATE_ROLE_LABELS[role];
 }
 
+export const chatGateConversationProps = {
+  conversationId: String,
+  title: { type: String, default: "Support" },
+  placeholder: { type: String, default: "Write a message…" },
+  allowAttachments: { type: Boolean, default: true },
+  allowVoice: { type: Boolean, default: true },
+  acceptedFileTypes: String,
+  maxFileSizeBytes: { type: Number, default: 25 * 1024 * 1024 },
+  renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole) => VNodeChild>,
+  /** Replaces the built-in "no messages yet" panel. */
+  emptyState: Function as PropType<() => VNodeChild>,
+  showRoleBadge: { type: Boolean, default: true },
+  roleLabels: Object as PropType<Partial<Record<ChatGateParticipantRole, string>>>,
+  /** Branding tokens — compiled to the `--cg-*` custom properties. */
+  theme: Object as PropType<ChatGateTheme>,
+  header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
+  onBack: Function as PropType<() => void>,
+} as const;
+
 export const ChatGateConversation = defineComponent({
   name: "ChatGateConversation",
-  props: {
-    conversationId: String,
-    title: { type: String, default: "Support" },
-    placeholder: { type: String, default: "Write a message…" },
-    allowAttachments: { type: Boolean, default: true },
-    allowVoice: { type: Boolean, default: true },
-    acceptedFileTypes: String,
-    maxFileSizeBytes: { type: Number, default: 25 * 1024 * 1024 },
-    renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole) => VNodeChild>,
-    showRoleBadge: { type: Boolean, default: true },
-    roleLabels: Object as PropType<Partial<Record<ChatGateParticipantRole, string>>>,
-    header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
-    onBack: Function as PropType<() => void>,
-  },
+  props: chatGateConversationProps,
   setup(props) {
     const client = useChatGate();
     const { controller, state } = useChatGateConversation(() => props.conversationId);
@@ -472,7 +479,11 @@ export const ChatGateConversation = defineComponent({
       const assigneeId = state.value.thread?.assigneeId ?? state.value.thread?.createdBy?.id;
       const online = assigneeId ? state.value.onlineUserIds.includes(assigneeId) : false;
       const typing = state.value.typingUsers[0];
-      return h("section", { "data-chatgate-conversation": "", style: styles.root, "aria-label": props.title }, [
+      return h("section", {
+        "data-chatgate-conversation": "",
+        style: { ...styles.root, ...createChatGateThemeVariables(props.theme) },
+        "aria-label": props.title,
+      }, [
         h("style", componentCss),
         props.header === "none"
           ? (props.onBack
@@ -518,7 +529,7 @@ export const ChatGateConversation = defineComponent({
             ? h("div", { style: styles.status }, "Loading conversation…")
             : null,
           !state.value.loading && state.value.messages.length === 0
-            ? h("div", { style: styles.status }, [
+            ? props.emptyState?.() ?? h("div", { style: styles.status }, [
                 h("span", { "aria-hidden": "true", style: styles.emptyIcon }, [icon("chat", 22)]),
                 h("strong", { style: styles.emptyTitle }, "Start a conversation"),
                 h("span", "No messages yet. Start the conversation."),
