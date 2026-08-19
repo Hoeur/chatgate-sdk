@@ -20,6 +20,13 @@ test("rejects script-bearing and unlisted schemes", () => {
   assert.equal(sanitizeUrl("file:///etc/passwd"), undefined);
 });
 
+test("rejects schemes hidden behind invisible formatting marks", () => {
+  for (const mark of ["\u200b", "\u200c", "\u200d", "\u200e", "\u200f", "\u202e", "\u2066", "\u00ad", "\ufeff"]) {
+    assert.equal(sanitizeUrl(`${mark}javascript:alert(1)`), undefined, `leading ${JSON.stringify(mark)}`);
+    assert.equal(sanitizeUrl(`java${mark}script:alert(1)`), undefined, `embedded ${JSON.stringify(mark)}`);
+  }
+});
+
 test("rejects empty and non-string values", () => {
   assert.equal(sanitizeUrl(undefined), undefined);
   assert.equal(sanitizeUrl(null), undefined);
