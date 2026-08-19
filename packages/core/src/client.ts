@@ -336,9 +336,9 @@ export class ChatGateClient {
     if (!conversationId) {
       throw new ChatGateError("CONVERSATION_REQUIRED", "No active ChatGate conversation is available");
     }
+    const { conversationId: _ignoredConversationId, ...rest } = input;
     const payload = {
-      ...input,
-      conversationId: undefined,
+      ...rest,
       inboxConversationId: conversationId,
       messageType: input.messageType ?? "text",
       clientMessageId: input.clientMessageId ?? randomId(),

@@ -209,6 +209,7 @@ test("sends a visitor message through the inbox socket contract", async () => {
   assert.equal(send[1].messageType, "text");
   assert.equal(typeof send[1].clientMessageId, "string");
   assert.ok(send[1].clientMessageId.length > 10);
+  assert.equal(Object.hasOwn(send[1], "conversationId"), false);
   client.stop();
 });
 

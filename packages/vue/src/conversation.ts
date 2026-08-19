@@ -12,6 +12,7 @@ import {
 } from "vue";
 import {
   resolveMessageRole,
+  sanitizeUrl,
   CHATGATE_ROLE_LABELS,
   type ChatGateMessage,
   type ChatGateMessageType,
@@ -397,19 +398,20 @@ export const ChatGateConversation = defineComponent({
 
     function defaultMessage(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole): VNodeChild {
       const roleColor = ROLE_BADGE_COLORS[role];
-      const hasMedia = (message.messageType === "image" || message.messageType === "voice") && Boolean(message.fileUrl);
+      const fileUrl = sanitizeUrl(message.fileUrl);
+      const hasMedia = (message.messageType === "image" || message.messageType === "voice") && Boolean(fileUrl);
       const bubbleChildren: VNodeChild[] = [];
       if (message.replyTo) {
         bubbleChildren.push(h("div", { style: styles.replyQuote }, messageLabel(message.replyTo)));
       }
-      if (message.messageType === "image" && message.fileUrl) {
-        bubbleChildren.push(h("a", { href: message.fileUrl, target: "_blank", rel: "noreferrer", style: styles.imageLink }, [
-          h("img", { class: "cg-message-image", src: message.fileUrl, alt: message.fileName ?? "Shared image", style: styles.image }),
+      if (message.messageType === "image" && fileUrl) {
+        bubbleChildren.push(h("a", { href: fileUrl, target: "_blank", rel: "noopener noreferrer", style: styles.imageLink }, [
+          h("img", { class: "cg-message-image", src: fileUrl, alt: message.fileName ?? "Shared image", style: styles.image }),
         ]));
-      } else if (message.messageType === "voice" && message.fileUrl) {
-        bubbleChildren.push(h("audio", { controls: true, preload: "metadata", src: message.fileUrl, style: styles.audio }));
-      } else if (message.messageType === "file" && message.fileUrl) {
-        bubbleChildren.push(h("a", { href: message.fileUrl, target: "_blank", rel: "noreferrer", download: message.fileName ?? undefined, style: styles.fileLink }, [
+      } else if (message.messageType === "voice" && fileUrl) {
+        bubbleChildren.push(h("audio", { controls: true, preload: "metadata", src: fileUrl, style: styles.audio }));
+      } else if (message.messageType === "file" && fileUrl) {
+        bubbleChildren.push(h("a", { href: fileUrl, target: "_blank", rel: "noopener noreferrer", download: message.fileName ?? undefined, style: styles.fileLink }, [
           h("span", { "aria-hidden": "true", style: styles.fileIcon }, [icon("file")]),
           h("span", { style: styles.fileText }, [
             h("span", { style: styles.fileName }, message.fileName ?? "Download attachment"),

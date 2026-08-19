@@ -17,4 +17,11 @@ export {
   type ChatGateParticipantRole,
   type ChatGateRoleContext,
 } from "./roles.js";
+export {
+  sanitizeUrl,
+  isSafeUrl,
+  CHATGATE_SAFE_URL_SCHEMES,
+  type ChatGateSafeUrlScheme,
+  type ChatGateSanitizeUrlOptions,
+} from "./urls.js";
 export type * from "./types.js";
