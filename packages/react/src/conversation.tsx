@@ -11,6 +11,7 @@ import {
 } from "react";
 import {
   resolveMessageRole,
+  sanitizeUrl,
   CHATGATE_ROLE_LABELS,
   type ChatGateMessage,
   type ChatGateMessageType,
@@ -375,7 +376,8 @@ function DefaultMessage({
   for (const reaction of message.reactions ?? []) {
     reactionCounts.set(reaction.emoji, (reactionCounts.get(reaction.emoji) ?? 0) + 1);
   }
-  const hasMedia = (message.messageType === "image" || message.messageType === "voice") && Boolean(message.fileUrl);
+  const fileUrl = sanitizeUrl(message.fileUrl);
+  const hasMedia = (message.messageType === "image" || message.messageType === "voice") && Boolean(fileUrl);
 
   return (
     <article className="cg-message" data-role={role} style={{ ...styles.messageRow, ...(own ? styles.messageRowOwn : {}) }}>
@@ -396,18 +398,18 @@ function DefaultMessage({
         }}
       >
         {message.replyTo ? <div style={styles.replyQuote}>{attachmentLabel(message.replyTo)}</div> : null}
-        {message.messageType === "image" && message.fileUrl ? (
-          <a href={message.fileUrl} target="_blank" rel="noreferrer" style={styles.imageLink}>
-            <img className="cg-message-image" src={message.fileUrl} alt={message.fileName ?? "Shared image"} style={styles.image} />
+        {message.messageType === "image" && fileUrl ? (
+          <a href={fileUrl} target="_blank" rel="noopener noreferrer" style={styles.imageLink}>
+            <img className="cg-message-image" src={fileUrl} alt={message.fileName ?? "Shared image"} style={styles.image} />
           </a>
         ) : null}
-        {message.messageType === "voice" && message.fileUrl ? (
-          <audio controls preload="metadata" src={message.fileUrl} style={styles.audio}>
-            <a href={message.fileUrl}>Download voice message</a>
+        {message.messageType === "voice" && fileUrl ? (
+          <audio controls preload="metadata" src={fileUrl} style={styles.audio}>
+            <a href={fileUrl} target="_blank" rel="noopener noreferrer">Download voice message</a>
           </audio>
         ) : null}
-        {message.messageType === "file" && message.fileUrl ? (
-          <a href={message.fileUrl} target="_blank" rel="noreferrer" download={message.fileName ?? undefined} style={styles.fileLink}>
+        {message.messageType === "file" && fileUrl ? (
+          <a href={fileUrl} target="_blank" rel="noopener noreferrer" download={message.fileName ?? undefined} style={styles.fileLink}>
             <span aria-hidden="true" style={styles.fileIcon}><Icon name="file" /></span>
             <span style={styles.fileText}>
               <span style={styles.fileName}>{message.fileName ?? "Download attachment"}</span>

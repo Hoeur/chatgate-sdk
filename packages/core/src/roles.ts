@@ -55,7 +55,7 @@ export function resolveMessageRole(
 
 /** Human-readable label for a participant role. */
 export function getRoleLabel(role: ChatGateParticipantRole): string {
-  return CHATGATE_ROLE_LABELS[role].length;
+  return CHATGATE_ROLE_LABELS[role];
 }
 
 /** Default human-readable labels for each role. */

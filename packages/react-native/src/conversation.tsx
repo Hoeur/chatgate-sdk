@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import {
   resolveMessageRole,
+  sanitizeUrl,
   CHATGATE_ROLE_LABELS,
   type ChatGateMessage,
   type ChatGateParticipantRole,
@@ -80,6 +81,16 @@ function countReactions(reactions?: ChatGateReaction[] | null): Array<{ emoji: s
   const counts = new Map<string, number>();
   for (const reaction of reactions) counts.set(reaction.emoji, (counts.get(reaction.emoji) ?? 0) + 1);
   return Array.from(counts, ([emoji, count]) => ({ emoji, count }));
+}
+
+async function openExternalUrl(url: string | null | undefined): Promise<void> {
+  const safe = sanitizeUrl(url);
+  if (!safe) return;
+  try {
+    await Linking.openURL(safe);
+  } catch {
+    // ignore unopenable links
+  }
 }
 
 export function ChatGateConversation({
@@ -202,7 +213,7 @@ export function ChatGateConversation({
 
   const togglePlayVoice = useCallback(
     async (message: ChatGateMessage) => {
-      const uri = message.fileUrl;
+      const uri = sanitizeUrl(message.fileUrl);
       if (!uri) return;
       if (playingVoiceId === message.id) {
         await stopPlayback();
@@ -210,7 +221,7 @@ export function ChatGateConversation({
       }
       await stopPlayback();
       if (!mediaAdapter?.playVoice) {
-        void Linking.openURL(uri);
+        void openExternalUrl(uri);
         return;
       }
       setPlayingVoiceId(message.id);
@@ -224,7 +235,7 @@ export function ChatGateConversation({
         playbackRef.current = handle;
       } catch {
         setPlayingVoiceId(null);
-        void Linking.openURL(uri);
+        void openExternalUrl(uri);
       }
     },
     [mediaAdapter, playingVoiceId, stopPlayback],
@@ -241,14 +252,16 @@ export function ChatGateConversation({
     const senderName = item.sender?.username?.trim() || roleLabel(role, roleLabels);
     const showText = Boolean(item.content) && !(item.messageType === "voice" && item.content === "Voice message");
     const reactions = countReactions(item.reactions);
+    const fileUri = sanitizeUrl(item.fileUrl);
+    const avatarUri = sanitizeUrl(item.sender?.avatarUrl);
 
     return (
       <View style={startsGroup ? styles.groupStart : styles.groupCont}>
         {!own && startsGroup && showRoleBadge ? (
           <View style={styles.senderHeader}>
             <View style={styles.senderAvatar}>
-              {item.sender?.avatarUrl ? (
-                <Image source={{ uri: item.sender.avatarUrl }} style={styles.senderAvatarImg} />
+              {avatarUri ? (
+                <Image source={{ uri: avatarUri }} style={styles.senderAvatarImg} />
               ) : (
                 <Text style={styles.senderAvatarText}>{initialOf(senderName)}</Text>
               )}
@@ -273,19 +286,19 @@ export function ChatGateConversation({
               </Text>
             </View>
           ) : null}
-          {item.messageType === "image" && item.fileUrl ? (
-            <Pressable accessibilityRole="imagebutton" accessibilityLabel="Open image" onPress={() => setViewerUri(item.fileUrl!)}>
-              <Image source={{ uri: item.fileUrl }} style={styles.image} resizeMode="cover" />
+          {item.messageType === "image" && fileUri ? (
+            <Pressable accessibilityRole="imagebutton" accessibilityLabel="Open image" onPress={() => setViewerUri(fileUri)}>
+              <Image source={{ uri: fileUri }} style={styles.image} resizeMode="cover" />
             </Pressable>
           ) : null}
-          {item.fileUrl && item.messageType !== "image" ? (
+          {fileUri && item.messageType !== "image" ? (
             <Pressable
               accessibilityRole="button"
               style={styles.attachmentRow}
               onPress={() =>
                 item.messageType === "voice"
                   ? void togglePlayVoice(item)
-                  : void Linking.openURL(item.fileUrl!)
+                  : void openExternalUrl(fileUri)
               }
             >
               <View style={[styles.attachmentIcon, own && styles.attachmentIconOwn]}>

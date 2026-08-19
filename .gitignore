@@ -8,3 +8,15 @@ test-results/
 *.tsbuildinfo
 *.tgz
 .idea/
+.vscode/
+.DS_Store
+
+# Editor / filesystem temp and swap files
+.fuse_hidden*
+*.swp
+*.swo
+*.swn
+*~
+*.orig
+*.rej
+.*.kate-swp
