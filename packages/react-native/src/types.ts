@@ -5,6 +5,19 @@ export interface ChatGateNativeAsset {
   name: string;
   mimeType: string;
   messageType: Exclude<ChatGateMessageType, "text" | "encrypted">;
+  /** Size in bytes when the picker reports it, so the UI can enforce limits. */
+  sizeBytes?: number;
+}
+
+/**
+ * Limits configured on the component and forwarded to the picker. Adapters that
+ * cannot apply them can ignore them: the component also rejects an asset whose
+ * reported `sizeBytes` exceeds `maxFileSizeBytes`.
+ */
+export interface ChatGateAttachmentConstraints {
+  /** MIME types or extensions, in the same shape as the web `accept` attribute. */
+  acceptedFileTypes?: string;
+  maxFileSizeBytes?: number;
 }
 
 /** Handle returned by playVoice so the caller can halt playback. */
@@ -14,7 +27,9 @@ export interface ChatGateAudioController {
 }
 
 export interface ChatGateMediaAdapter {
-  pickAttachment(): Promise<ChatGateNativeAsset | null>;
+  pickAttachment(
+    constraints?: ChatGateAttachmentConstraints,
+  ): Promise<ChatGateNativeAsset | null>;
   recordVoice?(): Promise<ChatGateNativeAsset | null>;
   /**
    * Play a remote audio clip in-app (e.g. via expo-av). Resolve with a

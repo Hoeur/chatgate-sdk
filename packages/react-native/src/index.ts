@@ -21,6 +21,7 @@ export {
   type ChatGateMessengerProps,
 } from "./messenger.js";
 export type {
+  ChatGateAttachmentConstraints,
   ChatGateAudioController,
   ChatGateMediaAdapter,
   ChatGateNativeAsset,

@@ -19,3 +19,22 @@ test("exports a framework context consumable by React Native hooks", async () =>
   const indexSource = await readFile(new URL("../dist/index.js", import.meta.url), "utf8");
   assert.match(indexSource, /ChatGateMessenger/);
 });
+test("declares the composer, render and empty-state props on the public API", async () => {
+  const declarations = await readFile(
+    new URL("../dist/conversation.d.ts", import.meta.url),
+    "utf8",
+  );
+  for (const prop of [
+    "allowAttachments?:",
+    "allowVoice?:",
+    "acceptedFileTypes?:",
+    "maxFileSizeBytes?:",
+    "renderMessage?:",
+    "emptyState?:",
+  ]) {
+    assert.ok(declarations.includes(prop), `missing ${prop}`);
+  }
+  const types = await readFile(new URL("../dist/types.d.ts", import.meta.url), "utf8");
+  assert.match(types, /ChatGateAttachmentConstraints/);
+  assert.match(types, /pickAttachment\(constraints\?/);
+});
