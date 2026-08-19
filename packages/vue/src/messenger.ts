@@ -10,9 +10,36 @@ import type {
   ChatGateBusinessUnit,
   ChatGateConversation as ChatGateConversationModel,
   ChatGateMessage,
+  ChatGateParticipantRole,
 } from "@chatgate/core";
 import { ChatGateConversation } from "./conversation.js";
+import { createChatGateThemeVariables, type ChatGateTheme } from "./theme.js";
 import { useChatGateConversationList } from "./use-conversation-list.js";
+
+/** Overridable copy for the conversation list, for localized apps. */
+export interface ChatGateMessengerLabels {
+  conversations?: string;
+  businesses?: string;
+  searchPlaceholder?: string;
+  noConversations?: string;
+  noSearchResults?: string;
+  online?: string;
+  retry?: string;
+  loading?: string;
+  emptyPreview?: string;
+}
+
+const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
+  conversations: "Conversations",
+  businesses: "Chat with a business",
+  searchPlaceholder: "Search conversations",
+  noConversations: "No conversations yet.",
+  noSearchResults: "No matches.",
+  online: "We're online",
+  retry: "Retry",
+  loading: "Loading conversations...",
+  emptyPreview: "Tap to start the conversation",
+};
 
 /*
  * The list uses the same CSS custom properties as ChatGateConversation
@@ -49,9 +76,9 @@ function unitName(unit: ChatGateBusinessUnit | null | undefined, fallback: strin
   return unit?.name?.trim() || fallback;
 }
 
-function previewFor(conversation: ChatGateConversationModel): string {
+function previewFor(conversation: ChatGateConversationModel, fallback: string): string {
   const message = conversation.lastMessage;
-  if (!message) return "Tap to start the conversation";
+  if (!message) return fallback;
   if (message.messageType === "image") return "Photo";
   if (message.messageType === "voice") return "Voice message";
   return message.content?.trim() || message.fileName || "Attachment";
@@ -75,6 +102,7 @@ function relativeTime(iso?: string | null): string {
 
 function conversationRow(
   conversation: ChatGateConversationModel,
+  labels: Required<ChatGateMessengerLabels>,
   onSelect: () => void,
 ): VNodeChild {
   const name = unitName(conversation.businessUnit, "Company support");
@@ -88,7 +116,7 @@ function conversationRow(
         time ? h("small", { style: timeStyle }, time) : null,
       ]),
       h("span", { style: lineStyle }, [
-        h("small", { style: previewStyle }, previewFor(conversation)),
+        h("small", { style: previewStyle }, previewFor(conversation, labels.emptyPreview)),
         unreadCount > 0
           ? h("span", { "aria-label": `${unreadCount} unread messages`, style: { display: "grid", minWidth: "22px", height: "22px", flex: "0 0 auto", placeItems: "center", borderRadius: "999px", background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", fontSize: "10.5px", fontWeight: 800, padding: "0 6px" } }, unreadCount > 99 ? "99+" : String(unreadCount))
           : null,
@@ -113,27 +141,37 @@ function businessUnitRow(
   ]);
 }
 
+export const chatGateMessengerProps = {
+  conversationId: String,
+  showConversationList: { type: Boolean, default: true },
+  showSearch: { type: Boolean, default: true },
+  header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
+  title: { type: String, default: "Support" },
+  greeting: String,
+  placeholder: { type: String, default: "Write a message…" },
+  allowAttachments: { type: Boolean, default: true },
+  allowVoice: { type: Boolean, default: true },
+  acceptedFileTypes: String,
+  maxFileSizeBytes: { type: Number, default: 25 * 1024 * 1024 },
+  renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean, role: ChatGateParticipantRole) => VNodeChild>,
+  emptyState: Function as PropType<() => VNodeChild>,
+  showRoleBadge: { type: Boolean, default: true },
+  roleLabels: Object as PropType<Partial<Record<ChatGateParticipantRole, string>>>,
+  /** Branding tokens — compiled to the `--cg-*` custom properties. */
+  theme: Object as PropType<ChatGateTheme>,
+  /** Overrides for the conversation-list copy. */
+  labels: Object as PropType<ChatGateMessengerLabels>,
+} as const;
+
 export const ChatGateMessenger = defineComponent({
   name: "ChatGateMessenger",
-  props: {
-    conversationId: String,
-    showConversationList: { type: Boolean, default: true },
-    showSearch: { type: Boolean, default: true },
-    header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
-    title: { type: String, default: "Support" },
-    greeting: String,
-    placeholder: { type: String, default: "Write a message…" },
-    allowAttachments: { type: Boolean, default: true },
-    allowVoice: { type: Boolean, default: true },
-    acceptedFileTypes: String,
-    maxFileSizeBytes: { type: Number, default: 25 * 1024 * 1024 },
-    renderMessage: Function as PropType<(message: ChatGateMessage, own: boolean) => VNodeChild>,
-  },
+  props: chatGateMessengerProps,
   setup(props) {
     const { controller, state } = useChatGateConversationList();
     const query = ref("");
 
     return () => {
+      const labels = { ...DEFAULT_LABELS, ...props.labels };
       const selectedConversationId = props.conversationId ?? state.value.selectedConversationId;
       const selectedConversation = state.value.conversations.find(
         (conversation) => conversation.id === selectedConversationId,
@@ -146,8 +184,12 @@ export const ChatGateMessenger = defineComponent({
         allowAttachments: props.allowAttachments,
         allowVoice: props.allowVoice,
         maxFileSizeBytes: props.maxFileSizeBytes,
+        showRoleBadge: props.showRoleBadge,
         ...(props.acceptedFileTypes ? { acceptedFileTypes: props.acceptedFileTypes } : {}),
         ...(props.renderMessage ? { renderMessage: props.renderMessage } : {}),
+        ...(props.emptyState ? { emptyState: props.emptyState } : {}),
+        ...(props.roleLabels ? { roleLabels: props.roleLabels } : {}),
+        ...(props.theme ? { theme: props.theme } : {}),
       };
       if (!props.showConversationList || props.conversationId) {
         return h(ChatGateConversation, conversationProps);
@@ -172,7 +214,8 @@ export const ChatGateMessenger = defineComponent({
       const conversations = term
         ? state.value.conversations.filter((conversation) => {
             const name = unitName(conversation.businessUnit, "").toLowerCase();
-            return name.includes(term) || previewFor(conversation).toLowerCase().includes(term);
+            return name.includes(term)
+              || previewFor(conversation, labels.emptyPreview).toLowerCase().includes(term);
           })
         : state.value.conversations;
       const businessUnits = term
@@ -181,7 +224,10 @@ export const ChatGateMessenger = defineComponent({
           )
         : availableBusinessUnits;
 
-      return h("section", { style: rootStyle, "aria-label": `${props.title} conversations` }, [
+      return h("section", {
+        style: { ...rootStyle, ...createChatGateThemeVariables(props.theme) },
+        "aria-label": `${props.title} conversations`,
+      }, [
         props.header === "none"
           ? null
           : props.header === "minimal"
@@ -191,7 +237,7 @@ export const ChatGateMessenger = defineComponent({
                 h("p", { style: { margin: "8px 0 0", color: "var(--cg-accent-text, #fff)", opacity: 0.85, fontSize: "13px", lineHeight: 1.5 } }, props.greeting ?? `Welcome to ${props.title}. Choose a conversation or start chatting with a business.`),
                 h("small", { style: { display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "12px", color: "var(--cg-accent-text, #fff)", opacity: 0.92, fontWeight: 700 } }, [
                   h("span", { "aria-hidden": "true", style: { width: "8px", height: "8px", borderRadius: "999px", background: "#4ade80", boxShadow: "0 0 0 3px rgba(74,222,128,.25)" } }),
-                  "We're online",
+                  labels.online,
                 ]),
               ]),
         props.showSearch
@@ -199,8 +245,8 @@ export const ChatGateMessenger = defineComponent({
               h("span", { "aria-hidden": "true", style: { color: "var(--cg-muted, #64748b)", fontSize: "14px" } }, "⌕"),
               h("input", {
                 type: "search",
-                "aria-label": "Search conversations",
-                placeholder: "Search conversations",
+                "aria-label": labels.searchPlaceholder,
+                placeholder: labels.searchPlaceholder,
                 value: query.value,
                 style: searchInputStyle,
                 onInput: (event: Event) => { query.value = (event.target as HTMLInputElement).value; },
@@ -208,13 +254,13 @@ export const ChatGateMessenger = defineComponent({
             ])
           : null,
         h("div", { style: bodyStyle, "aria-busy": state.value.loading || state.value.switching }, [
-          state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", background: "#fef2f2", color: "#b91c1c" } }, [state.value.error.message, h("button", { type: "button", onClick: () => void controller.reload() }, "Retry")]) : null,
-          conversations.length > 0 ? h("p", { style: sectionStyle }, "Conversations") : null,
-          ...conversations.map((conversation) => conversationRow(conversation, () => controller.selectConversation(conversation.id))),
-          businessUnits.length > 0 ? h("p", { style: { ...sectionStyle, marginTop: "18px" } }, "Chat with a business") : null,
+          state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", background: "#fef2f2", color: "#b91c1c" } }, [state.value.error.message, h("button", { type: "button", onClick: () => void controller.reload() }, labels.retry)]) : null,
+          conversations.length > 0 ? h("p", { style: sectionStyle }, labels.conversations) : null,
+          ...conversations.map((conversation) => conversationRow(conversation, labels, () => controller.selectConversation(conversation.id))),
+          businessUnits.length > 0 ? h("p", { style: { ...sectionStyle, marginTop: "18px" } }, labels.businesses) : null,
           ...businessUnits.map((unit) => businessUnitRow(unit, state.value.switching, () => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined))),
-          !state.value.loading && conversations.length === 0 && businessUnits.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, term ? "No matches." : "No conversations yet.") : null,
-          state.value.loading && state.value.conversations.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, "Loading conversations...") : null,
+          !state.value.loading && conversations.length === 0 && businessUnits.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, term ? labels.noSearchResults : labels.noConversations) : null,
+          state.value.loading && state.value.conversations.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, labels.loading) : null,
         ]),
       ]);
     };
