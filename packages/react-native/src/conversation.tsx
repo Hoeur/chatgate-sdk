@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -36,8 +36,24 @@ export interface ChatGateConversationProps {
   conversationId?: string;
   title?: string;
   placeholder?: string;
+  /** Replaces the default "no messages yet" copy. */
+  emptyState?: ReactNode;
   style?: StyleProp<ViewStyle>;
   mediaAdapter?: ChatGateMediaAdapter;
+  /** Show the attachment button when a media adapter is present. Default true. */
+  allowAttachments?: boolean;
+  /** Show the voice button when the adapter implements recordVoice. Default true. */
+  allowVoice?: boolean;
+  /** Forwarded to the adapter's picker, in the same shape as the web `accept` attribute. */
+  acceptedFileTypes?: string;
+  /** Attachments above this size are rejected before upload. Default 25 MB. */
+  maxFileSizeBytes?: number;
+  /** Render messages yourself instead of using the built-in bubbles. */
+  renderMessage?: (
+    message: ChatGateMessage,
+    own: boolean,
+    role: ChatGateParticipantRole,
+  ) => ReactNode;
   /** Show the sender avatar + name above each incoming message group. Default true. */
   showRoleBadge?: boolean;
   roleLabels?: Partial<Record<ChatGateParticipantRole, string>>;
@@ -71,6 +87,12 @@ function formatTime(iso: string): string {
   return `${hours}:${minutes} ${meridiem}`;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes >= 1024 * 1024) return `${Math.round(bytes / (1024 * 1024))} MB`;
+  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${bytes} B`;
+}
+
 function initialOf(name: string): string {
   const char = name.trim().charAt(0);
   return char ? char.toUpperCase() : "?";
@@ -97,8 +119,14 @@ export function ChatGateConversation({
   conversationId,
   title = "Support",
   placeholder = "Write a message…",
+  emptyState = "No messages yet. Start the conversation.",
   style,
   mediaAdapter,
+  allowAttachments = true,
+  allowVoice = true,
+  acceptedFileTypes,
+  maxFileSizeBytes = 25 * 1024 * 1024,
+  renderMessage: renderMessageOverride,
   showRoleBadge = true,
   roleLabels,
   theme,
@@ -115,6 +143,7 @@ export function ChatGateConversation({
   const listRef = useRef<FlatList<ChatGateMessage>>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [viewerUri, setViewerUri] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const playbackRef = useRef<ChatGateAudioController | null>(null);
 
@@ -179,8 +208,18 @@ export function ChatGateConversation({
     }
   }, [controller, draft, editing, replyTo, state.sending]);
 
+  const pickConstraints = useMemo(() => ({
+    ...(acceptedFileTypes ? { acceptedFileTypes } : {}),
+    maxFileSizeBytes,
+  }), [acceptedFileTypes, maxFileSizeBytes]);
+
   const upload = useCallback(async (asset: ChatGateNativeAsset | null) => {
     if (!asset) return;
+    if (asset.sizeBytes !== undefined && asset.sizeBytes > maxFileSizeBytes) {
+      setLocalError(`File is larger than ${formatFileSize(maxFileSizeBytes)}.`);
+      return;
+    }
+    setLocalError(null);
     let value: unknown = { uri: asset.uri, name: asset.name, type: asset.mimeType };
     if (Platform.OS === "web") {
       // The browser's FormData needs a real Blob; the React Native
@@ -196,7 +235,7 @@ export function ChatGateConversation({
       },
     );
     setReplyTo(undefined);
-  }, [controller, replyTo]);
+  }, [controller, maxFileSizeBytes, replyTo]);
 
   const stopPlayback = useCallback(async () => {
     const active = playbackRef.current;
@@ -244,6 +283,7 @@ export function ChatGateConversation({
   const renderMessage: ListRenderItem<ChatGateMessage> = useCallback(({ item, index }) => {
     const own = item.senderId === selfId;
     const role = resolveMessageRole(item, state.thread);
+    if (renderMessageOverride) return <>{renderMessageOverride(item, own, role)}</>;
     const previous = state.messages[index - 1];
     const next = state.messages[index + 1];
     const startsGroup = !previous || previous.senderId !== item.senderId;
@@ -340,7 +380,7 @@ export function ChatGateConversation({
         ) : null}
       </View>
     );
-  }, [selfId, controller, state.thread, state.messages, showRoleBadge, roleLabels, styles, t, openMenu, togglePlayVoice, playingVoiceId]);
+  }, [selfId, controller, state.thread, state.messages, showRoleBadge, roleLabels, renderMessageOverride, styles, t, openMenu, togglePlayVoice, playingVoiceId]);
 
   const assigneeId = state.thread?.assigneeId ?? state.thread?.createdBy?.id;
   const online = assigneeId ? state.onlineUserIds.includes(assigneeId) : false;
@@ -391,6 +431,10 @@ export function ChatGateConversation({
         <Pressable accessibilityRole="button" style={styles.error} onPress={() => void controller.reload()}>
           <Text style={styles.errorText}>{state.error.message} — tap to retry</Text>
         </Pressable>
+      ) : localError ? (
+        <Pressable accessibilityRole="button" style={styles.error} onPress={() => setLocalError(null)}>
+          <Text style={styles.errorText}>{localError}</Text>
+        </Pressable>
       ) : null}
       <FlatList
         ref={listRef}
@@ -398,7 +442,7 @@ export function ChatGateConversation({
         keyExtractor={(message) => message.id}
         renderItem={renderMessage}
         contentContainerStyle={state.messages.length === 0 ? styles.emptyList : styles.list}
-        ListEmptyComponent={state.loading ? <ActivityIndicator color={t.accent} /> : <Text style={styles.emptyText}>No messages yet. Start the conversation.</Text>}
+        ListEmptyComponent={state.loading ? <ActivityIndicator color={t.accent} /> : <Text style={styles.emptyText}>{emptyState}</Text>}
         ListHeaderComponent={state.thread?.nextCursor ? (
           <Pressable disabled={state.loadingOlder} onPress={() => void controller.loadOlder()}>
             <Text style={styles.loadEarlier}>{state.loadingOlder ? "Loading…" : "Load earlier messages"}</Text>
@@ -419,12 +463,12 @@ export function ChatGateConversation({
         </View>
       ) : null}
       <View style={styles.composer}>
-        {mediaAdapter && !editing ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Attach file" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.pickAttachment().then(upload).catch(() => undefined)}>
+        {mediaAdapter && allowAttachments && !editing ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="Attach file" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.pickAttachment(pickConstraints).then(upload).catch(() => undefined)}>
             <AttachIcon size={19} color={t.accentDark} />
           </Pressable>
         ) : null}
-        {mediaAdapter?.recordVoice && !editing ? (
+        {mediaAdapter?.recordVoice && allowVoice && !editing ? (
           <Pressable accessibilityRole="button" accessibilityLabel="Record voice message" style={styles.iconButton} disabled={state.sending} onPress={() => void mediaAdapter.recordVoice!().then(upload).catch(() => undefined)}>
             <MicIcon size={19} color={t.accentDark} />
           </Pressable>

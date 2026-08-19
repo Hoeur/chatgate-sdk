@@ -29,6 +29,27 @@ and push adapters so applications may choose Expo modules or bare React Native
 native modules. Subscription keys and HMAC secrets must remain on the application
 server.
 
+## Composer and rendering options
+
+`<ChatGateMessenger>` and `<ChatGateConversation>` accept the same composer
+options as the web package:
+
+```tsx
+<ChatGateMessenger
+  mediaAdapter={yourExpoMediaAdapter}
+  allowVoice={false}
+  acceptedFileTypes="image/*,application/pdf"
+  maxFileSizeBytes={5 * 1024 * 1024}
+  emptyState="Ask us anything"
+  renderMessage={(message, own) => <YourBubble message={message} own={own} />}
+/>
+```
+
+`acceptedFileTypes` and `maxFileSizeBytes` are passed to
+`mediaAdapter.pickAttachment(constraints)`; adapters that cannot apply them may
+ignore them, and the component still rejects an asset whose reported `sizeBytes`
+exceeds the limit.
+
 The bundled native conversation UI supports history, text, image/file/voice
 assets supplied by the media adapter, replies, reactions, typing, presence, read
 receipts, reconnect/resync, and realtime merchant messages. For custom native
