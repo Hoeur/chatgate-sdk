@@ -24,4 +24,5 @@ export {
   type ChatGateSafeUrlScheme,
   type ChatGateSanitizeUrlOptions,
 } from "./urls.js";
+export { CALL_COMMENT_MAX_LENGTH, LIVE_REACTION_EMOJIS } from "./shared/constants.js";
 export type * from "./types.js";
