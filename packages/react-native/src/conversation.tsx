@@ -442,7 +442,13 @@ export function ChatGateConversation({
         keyExtractor={(message) => message.id}
         renderItem={renderMessage}
         contentContainerStyle={state.messages.length === 0 ? styles.emptyList : styles.list}
-        ListEmptyComponent={state.loading ? <ActivityIndicator color={t.accent} /> : <Text style={styles.emptyText}>{emptyState}</Text>}
+        ListEmptyComponent={state.loading ? <ActivityIndicator color={t.accent} /> : (
+          typeof emptyState === "string" ? (
+            <Text style={styles.emptyText}>{emptyState}</Text>
+          ) : (
+            <>{emptyState}</>
+          )
+        )}
         ListHeaderComponent={state.thread?.nextCursor ? (
           <Pressable disabled={state.loadingOlder} onPress={() => void controller.loadOlder()}>
             <Text style={styles.loadEarlier}>{state.loadingOlder ? "Loading…" : "Load earlier messages"}</Text>
