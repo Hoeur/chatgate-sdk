@@ -34,6 +34,8 @@ test("renders the one-component publishable-key integration during SSR", () => {
       publicKey: "cg_pub_example",
       organizationId: "org-1",
       userId: "customer-123",
+      autoStart: false,
+      stopOnUnmount: false,
       title: "Simple support",
     }),
   );
