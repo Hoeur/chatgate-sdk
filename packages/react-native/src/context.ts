@@ -1,7 +1,7 @@
 import { createContext, useContext } from "react";
 import type { ChatGateClient } from "@chatgate/core";
 
-export type ChatGateNativeStatus = "idle" | "connecting" | "connected" | "background" | "error";
+export type ChatGateNativeStatus = "idle" | "connecting" | "connected" | "disconnected" | "background" | "error";
 
 export interface ChatGateNativeContextValue {
   client: ChatGateClient;

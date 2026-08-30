@@ -1,4 +1,5 @@
 export { ChatGateProvider, type ChatGateProviderProps } from "./provider.js";
+export { ChatGate, type ChatGateProps } from "./chatgate.js";
 export {
   useChatGate,
   type ChatGateNativeContextValue,

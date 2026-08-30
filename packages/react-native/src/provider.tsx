@@ -11,6 +11,7 @@ export interface ChatGateProviderProps {
   disconnectOnBackground?: boolean;
   stopOnUnmount?: boolean;
   pushAdapter?: ChatGatePushAdapter;
+  fallback?: ReactNode;
 }
 
 export function ChatGateProvider({
@@ -20,6 +21,7 @@ export function ChatGateProvider({
   disconnectOnBackground = true,
   stopOnUnmount = true,
   pushAdapter,
+  fallback,
 }: ChatGateProviderProps) {
   const [status, setStatus] = useState<ChatGateNativeStatus>(
     client.connected ? "connected" : "idle",
@@ -31,6 +33,9 @@ export function ChatGateProvider({
     const cleanups = [
       client.on("connected", () => {
         if (active) setStatus("connected");
+      }),
+      client.on("disconnected", () => {
+        if (active) setStatus("disconnected");
       }),
       client.on("connectionError", (cause) => {
         if (!active) return;
@@ -80,5 +85,6 @@ export function ChatGateProvider({
   }, [autoStart, client, disconnectOnBackground, pushAdapter, stopOnUnmount]);
 
   const value = useMemo(() => ({ client, status, error }), [client, status, error]);
+  if (fallback !== undefined && status === "connecting" && !client.session) return fallback;
   return <ChatGateNativeContext.Provider value={value}>{children}</ChatGateNativeContext.Provider>;
 }

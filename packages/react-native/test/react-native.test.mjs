@@ -19,6 +19,17 @@ test("exports a framework context consumable by React Native hooks", async () =>
   const indexSource = await readFile(new URL("../dist/index.js", import.meta.url), "utf8");
   assert.match(indexSource, /ChatGateMessenger/);
 });
+test("exports a ChatGate one-component and provider fallback", async () => {
+  const chatgateSource = await readFile(new URL("../dist/chatgate.js", import.meta.url), "utf8");
+  assert.match(chatgateSource, /export function ChatGate\(/);
+  const indexTypes = await readFile(new URL("../dist/index.d.ts", import.meta.url), "utf8");
+  assert.match(indexTypes, /export \{ ChatGate,/);
+  const providerTypes = await readFile(new URL("../dist/provider.d.ts", import.meta.url), "utf8");
+  assert.match(providerTypes, /fallback\?:/);
+  const contextTypes = await readFile(new URL("../dist/context.d.ts", import.meta.url), "utf8");
+  assert.match(contextTypes, /"disconnected"/);
+});
+
 test("declares the composer, render and empty-state props on the public API", async () => {
   const declarations = await readFile(
     new URL("../dist/conversation.d.ts", import.meta.url),
