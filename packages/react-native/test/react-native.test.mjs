@@ -22,6 +22,13 @@ test("exports a framework context consumable by React Native hooks", async () =>
 test("exports a ChatGate one-component and provider fallback", async () => {
   const chatgateSource = await readFile(new URL("../dist/chatgate.js", import.meta.url), "utf8");
   assert.match(chatgateSource, /export function ChatGate\(/);
+  assert.match(chatgateSource, /autoStart = true/);
+  assert.match(chatgateSource, /stopOnUnmount = true/);
+  assert.match(chatgateSource, /disconnectOnBackground = true/);
+  const chatgateTypes = await readFile(new URL("../dist/chatgate.d.ts", import.meta.url), "utf8");
+  assert.match(chatgateTypes, /autoStart\?:/);
+  assert.match(chatgateTypes, /stopOnUnmount\?:/);
+  assert.match(chatgateTypes, /disconnectOnBackground\?:/);
   const indexTypes = await readFile(new URL("../dist/index.d.ts", import.meta.url), "utf8");
   assert.match(indexTypes, /export \{ ChatGate,/);
   const providerTypes = await readFile(new URL("../dist/provider.d.ts", import.meta.url), "utf8");

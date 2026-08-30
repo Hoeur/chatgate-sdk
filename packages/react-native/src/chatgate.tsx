@@ -15,6 +15,9 @@ export interface ChatGateProps extends ChatGateMessengerProps {
   roomId?: string;
   businessUnitExternalId?: string;
   fallback?: ReactNode;
+  autoStart?: boolean;
+  stopOnUnmount?: boolean;
+  disconnectOnBackground?: boolean;
 }
 
 export function ChatGate({
@@ -29,6 +32,9 @@ export function ChatGate({
   roomId,
   businessUnitExternalId,
   fallback,
+  autoStart = true,
+  stopOnUnmount = true,
+  disconnectOnBackground = true,
   ...conversationProps
 }: ChatGateProps) {
   const client = useMemo(
@@ -60,7 +66,13 @@ export function ChatGate({
   );
 
   return (
-    <ChatGateProvider client={client} fallback={fallback}>
+    <ChatGateProvider
+      client={client}
+      fallback={fallback}
+      autoStart={autoStart}
+      stopOnUnmount={stopOnUnmount}
+      disconnectOnBackground={disconnectOnBackground}
+    >
       <ChatGateMessenger {...conversationProps} />
     </ChatGateProvider>
   );
