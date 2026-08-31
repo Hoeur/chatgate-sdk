@@ -144,6 +144,7 @@ function businessUnitRow(
 export const chatGateMessengerProps = {
   conversationId: String,
   showConversationList: { type: Boolean, default: true },
+  showBusinessDirectory: { type: Boolean, default: true },
   showSearch: { type: Boolean, default: true },
   header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
   title: { type: String, default: "Support" },
@@ -201,14 +202,13 @@ export const ChatGateMessenger = defineComponent({
         });
       }
 
-      const existingExternalIds = new Set(
-        state.value.conversations
-          .map((conversation) => conversation.businessUnit?.externalId)
-          .filter((externalId): externalId is string => Boolean(externalId)),
-      );
-      const availableBusinessUnits = state.value.businessUnits.filter(
-        (unit) => !existingExternalIds.has(unit.externalId),
-      );
+      const availableBusinessUnits = props.showBusinessDirectory
+        ? state.value.businessUnits.filter((unit) =>
+            !state.value.conversations.some(
+              (conversation) => conversation.businessUnit?.externalId === unit.externalId,
+            )
+          )
+        : [];
 
       const term = query.value.trim().toLowerCase();
       const conversations = term
