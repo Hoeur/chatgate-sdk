@@ -25,6 +25,8 @@ export interface ChatGateMessengerLabels {
   selectConversation?: string;
   online?: string;
   retry?: string;
+  loading?: string;
+  emptyPreview?: string;
   businessStart?: string;
   businessFallback?: string;
 }
@@ -49,6 +51,8 @@ const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
   selectConversation: "Select a conversation to see its full message history.",
   online: "We're online",
   retry: "Retry",
+  loading: "Loading conversations...",
+  emptyPreview: "Tap to start the conversation",
   businessStart: "{type} · start a chat",
   businessFallback: "Business",
 };
@@ -184,10 +188,13 @@ function messagePreview(message: ChatGateMessage | null | undefined, fallback: s
   return "Attachment";
 }
 
-function conversationPreview(conversation: ChatGateConversation): string {
+function conversationPreview(
+  conversation: ChatGateConversation,
+  emptyPreview: string,
+): string {
   return messagePreview(
     conversation.lastMessage,
-    conversation.subject?.trim() || `${conversation.messageCount ?? 0} messages`,
+    conversation.subject?.trim() || emptyPreview,
   );
 }
 
@@ -203,10 +210,12 @@ function shortDate(value: string): string {
 
 function ConversationRow({
   conversation,
+  labels,
   selected,
   onSelect,
 }: {
   conversation: ChatGateConversation;
+  labels: Required<ChatGateMessengerLabels>;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -227,7 +236,7 @@ function ConversationRow({
           <time style={styles.rowTime} dateTime={conversation.lastMessageAt}>{shortDate(conversation.lastMessageAt)}</time>
         </span>
         <span style={styles.rowBottom}>
-          <span style={styles.rowDescription}>{conversationPreview(conversation)}</span>
+          <span style={styles.rowDescription}>{conversationPreview(conversation, labels.emptyPreview)}</span>
           {unreadCount > 0 ? (
             <span style={styles.unread} aria-label={`${unreadCount} unread messages`}>
               {unreadCount > 99 ? "99+" : unreadCount}
@@ -301,9 +310,9 @@ function ChatGateConversationNavigator({
     return state.conversations.filter((conversation) => [
       unitName(conversation.businessUnit, "Company support"),
       conversation.subject ?? "",
-      conversationPreview(conversation),
+      conversationPreview(conversation, labels.emptyPreview),
     ].some((value) => value.toLocaleLowerCase().includes(query)));
-  }, [search, state.conversations]);
+  }, [search, state.conversations, labels.emptyPreview]);
   const rootVariables = createChatGateThemeVariables(theme);
   rootVariables["--cg-sidebar-width"] = typeof sidebarWidth === "number"
     ? `${sidebarWidth}px`
@@ -369,6 +378,7 @@ function ChatGateConversationNavigator({
                 <ConversationRow
                   key={conversation.id}
                   conversation={conversation}
+                  labels={labels}
                   selected={conversation.id === state.selectedConversationId}
                   onSelect={() => controller.selectConversation(conversation.id)}
                 />
@@ -376,7 +386,7 @@ function ChatGateConversationNavigator({
             </div>
           ) : (
             <div style={styles.empty}>
-              {state.loading ? "Loading conversations..." : search ? labels.noSearchResults : labels.noConversations}
+              {state.loading ? labels.loading : search ? labels.noSearchResults : labels.noConversations}
             </div>
           )}
           {availableBusinessUnits.length > 0 ? (
