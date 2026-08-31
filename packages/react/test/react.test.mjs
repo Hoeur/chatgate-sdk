@@ -65,3 +65,19 @@ test("renders the packaged conversation navigator during SSR", () => {
   assert.match(html, /--cg-accent:#7c3aed/);
   assert.match(html, /Select a conversation/);
 });
+
+test("hides the conversation search field when showSearch is false", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(
+      ChatGateProvider,
+      { client: fakeClient(), autoStart: false },
+      React.createElement(ChatGateMessenger, {
+        title: "Merchant support",
+        showSearch: false,
+      }),
+    ),
+  );
+
+  assert.match(html, /Merchant support/);
+  assert.doesNotMatch(html, /type="search"/);
+});

@@ -31,6 +31,7 @@ export interface ChatGateMessengerProps
   extends Omit<ChatGateConversationProps, "onBack" | "theme"> {
   showConversationList?: boolean;
   showBusinessDirectory?: boolean;
+  showSearch?: boolean;
   greeting?: string;
   sidebarWidth?: number | string;
   labels?: ChatGateMessengerLabels;
@@ -265,6 +266,7 @@ function ChatGateConversationNavigator({
   sidebarWidth = 320,
   labels: labelOverrides,
   showBusinessDirectory = true,
+  showSearch = true,
   header = "full",
   ...conversationProps
 }: Omit<ChatGateMessengerProps, "showConversationList" | "conversationId">) {
@@ -330,16 +332,16 @@ function ChatGateConversationNavigator({
               </div>
               <span style={styles.online}><span aria-hidden="true" style={styles.onlineDot} />{labels.online}</span>
             </div>
-            {searchField}
+            {showSearch ? searchField : null}
           </header>
         ) : header === "minimal" ? (
           <header style={styles.sidebarHeaderMinimal}>
             <h2 style={styles.titleMinimal}>{title}</h2>
-            {searchField}
+            {showSearch ? searchField : null}
           </header>
-        ) : (
+        ) : showSearch ? (
           <div style={styles.searchOnly}>{searchField}</div>
-        )}
+        ) : null}
         <div style={styles.body} aria-busy={state.loading || state.switching}>
           {state.error ? (
             <div role="alert" style={styles.error}>
