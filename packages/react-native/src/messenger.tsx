@@ -26,6 +26,7 @@ import { useChatGateConversationList } from "./use-conversation-list.js";
 export interface ChatGateMessengerProps
   extends Omit<ChatGateConversationProps, "onBack"> {
   showConversationList?: boolean;
+  showBusinessDirectory?: boolean;
   greeting?: string;
   /** Show the search field above the conversation list. Default true. */
   showSearch?: boolean;
@@ -116,6 +117,7 @@ function ChatGateConversationNavigator({
   theme,
   header = "full",
   showSearch = true,
+  showBusinessDirectory = true,
   ...conversationProps
 }: Omit<ChatGateMessengerProps, "showConversationList" | "conversationId">) {
   const { controller, state } = useChatGateConversationList();
@@ -162,8 +164,10 @@ function ChatGateConversationNavigator({
     );
   }
 
+  const visibleBusinessUnits = showBusinessDirectory ? businessUnits : [];
+
   const nothingToShow =
-    !state.loading && conversations.length === 0 && businessUnits.length === 0;
+    !state.loading && conversations.length === 0 && visibleBusinessUnits.length === 0;
 
   return (
     <View style={[styles.root, style]} accessibilityLabel={`${title} conversations`}>
@@ -216,10 +220,10 @@ function ChatGateConversationNavigator({
           />
         ))}
 
-        {businessUnits.length > 0 ? (
+        {visibleBusinessUnits.length > 0 ? (
           <Text style={[styles.sectionTitle, styles.businessSection]}>Chat with a business</Text>
         ) : null}
-        {businessUnits.map((unit) => (
+        {visibleBusinessUnits.map((unit) => (
           <BusinessUnitRow
             key={unit.id}
             unit={unit}
@@ -242,6 +246,7 @@ function ChatGateConversationNavigator({
 
 export function ChatGateMessenger({
   showConversationList = true,
+  showBusinessDirectory = true,
   conversationId,
   greeting,
   ...props
@@ -249,7 +254,13 @@ export function ChatGateMessenger({
   if (!showConversationList || conversationId) {
     return <ChatGateConversation {...props} {...(conversationId ? { conversationId } : {})} />;
   }
-  return <ChatGateConversationNavigator {...props} {...(greeting ? { greeting } : {})} />;
+  return (
+    <ChatGateConversationNavigator
+      {...props}
+      {...(greeting ? { greeting } : {})}
+      showBusinessDirectory={showBusinessDirectory}
+    />
+  );
 }
 
 function navStyles(t: ResolvedChatGateTheme) {
