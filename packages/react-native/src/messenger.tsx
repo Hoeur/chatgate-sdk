@@ -23,6 +23,32 @@ import {
 } from "./theme.js";
 import { useChatGateConversationList } from "./use-conversation-list.js";
 
+export interface ChatGateMessengerLabels {
+  conversations?: string;
+  businesses?: string;
+  searchPlaceholder?: string;
+  noConversations?: string;
+  noSearchResults?: string;
+  online?: string;
+  retry?: string;
+  emptyPreview?: string;
+  businessStart?: string;
+  businessFallback?: string;
+}
+
+const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
+  conversations: "Conversations",
+  businesses: "Chat with a business",
+  searchPlaceholder: "Search conversations",
+  noConversations: "No conversations yet.",
+  noSearchResults: "No matches.",
+  online: "We're online",
+  retry: "tap to retry",
+  emptyPreview: "Tap to start the conversation",
+  businessStart: "{type} · start a chat",
+  businessFallback: "Business",
+};
+
 export interface ChatGateMessengerProps
   extends Omit<ChatGateConversationProps, "onBack"> {
   showConversationList?: boolean;
@@ -30,15 +56,16 @@ export interface ChatGateMessengerProps
   greeting?: string;
   /** Show the search field above the conversation list. Default true. */
   showSearch?: boolean;
+  labels?: ChatGateMessengerLabels;
 }
 
 function unitName(unit: ChatGateBusinessUnit | null | undefined, fallback: string): string {
   return unit?.name?.trim() || fallback;
 }
 
-function previewFor(conversation: ConversationModel): string {
+function previewFor(conversation: ConversationModel, emptyPreview = "Tap to start the conversation"): string {
   const message = conversation.lastMessage;
-  if (!message) return "Tap to start the conversation";
+  if (!message) return emptyPreview;
   if (message.messageType === "image") return "Photo";
   if (message.messageType === "voice") return "Voice message";
   return message.content?.trim() || message.fileName || "Attachment";
@@ -47,10 +74,12 @@ function previewFor(conversation: ConversationModel): string {
 function ConversationRow({
   conversation,
   theme,
+  labels,
   onPress,
 }: {
   conversation: ConversationModel;
   theme: ResolvedChatGateTheme;
+  labels: Required<ChatGateMessengerLabels>;
   onPress: () => void;
 }) {
   const name = unitName(conversation.businessUnit, "Company support");
@@ -70,7 +99,7 @@ function ConversationRow({
         </View>
         <View style={s.line}>
           <Text numberOfLines={1} style={[s.preview, unread && s.previewUnread]}>
-            {previewFor(conversation)}
+            {previewFor(conversation, labels.emptyPreview)}
           </Text>
           {unread ? (
             <View accessibilityLabel={`${unreadCount} unread messages`} style={s.unread}>
@@ -86,15 +115,21 @@ function ConversationRow({
 function BusinessUnitRow({
   unit,
   theme,
+  labels,
   disabled,
   onPress,
 }: {
   unit: ChatGateBusinessUnit;
   theme: ResolvedChatGateTheme;
+  labels: Required<ChatGateMessengerLabels>;
   disabled: boolean;
   onPress: () => void;
 }) {
   const name = unitName(unit, unit.externalId);
+  const preview = labels.businessStart.replace(
+    "{type}",
+    unit.type?.trim() || labels.businessFallback,
+  );
   const s = rowStyles(theme);
   return (
     <Pressable accessibilityRole="button" style={s.row} disabled={disabled} onPress={onPress}>
@@ -103,7 +138,7 @@ function BusinessUnitRow({
       </View>
       <View style={s.meta}>
         <Text numberOfLines={1} style={s.name}>{name}</Text>
-        <Text numberOfLines={1} style={s.preview}>{unit.type || "Business"} · start a chat</Text>
+        <Text numberOfLines={1} style={s.preview}>{preview}</Text>
       </View>
       <Text style={s.chevron}>›</Text>
     </Pressable>
@@ -118,10 +153,12 @@ function ChatGateConversationNavigator({
   header = "full",
   showSearch = true,
   showBusinessDirectory = true,
+  labels: labelOverrides,
   ...conversationProps
 }: Omit<ChatGateMessengerProps, "showConversationList" | "conversationId">) {
   const { controller, state } = useChatGateConversationList();
   const [query, setQuery] = useState("");
+  const labels = { ...DEFAULT_LABELS, ...labelOverrides };
   const c = useMemo(() => resolveChatGateTheme(theme), [theme]);
   const styles = useMemo(() => navStyles(c), [c]);
 
@@ -141,7 +178,7 @@ function ChatGateConversationNavigator({
   const conversations = term
     ? state.conversations.filter((conversation) => {
         const name = unitName(conversation.businessUnit, "").toLowerCase();
-        return name.includes(term) || previewFor(conversation).toLowerCase().includes(term);
+        return name.includes(term) || previewFor(conversation, labels.emptyPreview).toLowerCase().includes(term);
       })
     : state.conversations;
   const businessUnits = term
@@ -179,7 +216,7 @@ function ChatGateConversationNavigator({
           </Text>
           <View style={styles.onlineRow}>
             <View style={styles.onlineDot} />
-            <Text style={styles.online}>We&apos;re online</Text>
+            <Text style={styles.online}>{labels.online}</Text>
           </View>
         </View>
       ) : header === "minimal" ? (
@@ -192,9 +229,9 @@ function ChatGateConversationNavigator({
         <View style={styles.searchWrap}>
           <SearchIcon size={15} color={c.muted} />
           <TextInput
-            accessibilityLabel="Search conversations"
+            accessibilityLabel={labels.searchPlaceholder}
             style={styles.search}
-            placeholder="Search conversations"
+            placeholder={labels.searchPlaceholder}
             placeholderTextColor={c.muted}
             value={query}
             onChangeText={setQuery}
@@ -206,28 +243,30 @@ function ChatGateConversationNavigator({
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {state.error ? (
           <Pressable accessibilityRole="button" style={styles.error} onPress={() => void controller.reload()}>
-            <Text style={styles.errorText}>{state.error.message} — tap to retry</Text>
+            <Text style={styles.errorText}>{state.error.message} — {labels.retry}</Text>
           </Pressable>
         ) : null}
 
-        {conversations.length > 0 ? <Text style={styles.sectionTitle}>Conversations</Text> : null}
+        {conversations.length > 0 ? <Text style={styles.sectionTitle}>{labels.conversations}</Text> : null}
         {conversations.map((conversation) => (
           <ConversationRow
             key={conversation.id}
             conversation={conversation}
             theme={c}
+            labels={labels}
             onPress={() => controller.selectConversation(conversation.id)}
           />
         ))}
 
         {visibleBusinessUnits.length > 0 ? (
-          <Text style={[styles.sectionTitle, styles.businessSection]}>Chat with a business</Text>
+          <Text style={[styles.sectionTitle, styles.businessSection]}>{labels.businesses}</Text>
         ) : null}
         {visibleBusinessUnits.map((unit) => (
           <BusinessUnitRow
             key={unit.id}
             unit={unit}
             theme={c}
+            labels={labels}
             disabled={state.switching}
             onPress={() => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined)}
           />
@@ -237,7 +276,7 @@ function ChatGateConversationNavigator({
           <ActivityIndicator color={c.accent} style={styles.loading} />
         ) : null}
         {nothingToShow ? (
-          <Text style={styles.empty}>{term ? "No matches." : "No conversations yet."}</Text>
+          <Text style={styles.empty}>{term ? labels.noSearchResults : labels.noConversations}</Text>
         ) : null}
       </ScrollView>
     </View>

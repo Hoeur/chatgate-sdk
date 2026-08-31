@@ -20,6 +20,7 @@ export {
 export {
   ChatGateMessenger,
   type ChatGateMessengerProps,
+  type ChatGateMessengerLabels,
 } from "./messenger.js";
 export type {
   ChatGateAttachmentConstraints,
