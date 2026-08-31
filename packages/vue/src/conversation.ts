@@ -129,7 +129,7 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: "700",
   },
   presenceDot: { width: "8px", height: "8px", borderRadius: "999px", background: "#94a3b8", boxShadow: "0 0 0 3px rgba(148,163,184,.14)" },
-  presenceDotOnline: { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" },
+  presenceDotOnline: { background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 14%, transparent)" },
   messages: {
     display: "flex",
     minHeight: "0",
@@ -182,8 +182,8 @@ const styles: Record<string, CSSProperties> = {
   status: { display: "grid", margin: "auto", padding: "26px", placeItems: "center", color: "#64748b", textAlign: "center" },
   emptyIcon: { display: "grid", width: "48px", height: "48px", marginBottom: "12px", placeItems: "center", border: "1px solid #d9e4f2", borderRadius: "16px", background: "#fff", boxShadow: "0 8px 22px rgba(30,64,175,.08)", color: "#2563eb" },
   emptyTitle: { marginBottom: "4px", color: "#1e293b", fontSize: "14px", fontWeight: "760" },
-  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", margin: "10px 12px 0", padding: "9px 11px", border: "1px solid #fecaca", borderRadius: "12px", background: "#fff1f2", color: "#b42318", fontSize: "12px" },
-  retryButton: { padding: "4px 8px", border: "1px solid #fda4af", borderRadius: "8px", background: "#fff", color: "#be123c", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
+  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", margin: "10px 12px 0", padding: "9px 11px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 24%, transparent)", borderRadius: "12px", background: "color-mix(in srgb, var(--cg-danger, #ef4444) 8%, transparent)", color: "var(--cg-danger, #b42318)", fontSize: "12px" },
+  retryButton: { padding: "4px 8px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 24%, transparent)", borderRadius: "8px", background: "var(--cg-surface, #fff)", color: "var(--cg-danger, #be123c)", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
   typing: { minHeight: "25px", padding: "5px 16px 2px", background: "#fff", color: "#64748b", fontSize: "11.5px" },
   composer: { display: "flex", flexDirection: "column", gap: "8px", padding: "9px 12px 11px", borderTop: "1px solid #e5ebf4", background: "#fff" },
   replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "8px 10px", border: "1px solid #dbeafe", borderRadius: "11px", background: "#eff6ff", color: "#1e40af", fontSize: "11.5px" },
@@ -191,7 +191,7 @@ const styles: Record<string, CSSProperties> = {
   composerRow: { display: "flex", alignItems: "center", gap: "5px", minHeight: "50px", padding: "4px", border: "1px solid #d4deeb", borderRadius: "16px", background: "#f8fafc", boxShadow: "0 4px 14px rgba(15,23,42,.04)" },
   input: { minWidth: "0", height: "40px", flex: "1", padding: "0 8px", border: "0", outline: "0", background: "transparent", color: "#172033", fontSize: "13.5px" },
   toolButton: { display: "grid", flex: "0 0 auto", width: "40px", height: "40px", padding: "0", placeItems: "center", border: "0", borderRadius: "11px", background: "transparent", color: "#52627a", cursor: "pointer" },
-  toolButtonRecording: { background: "#fee2e2", color: "#b91c1c" },
+  toolButtonRecording: { background: "color-mix(in srgb, var(--cg-danger, #ef4444) 10%, transparent)", color: "var(--cg-danger, #b91c1c)" },
   sendButton: { display: "inline-flex", height: "40px", alignItems: "center", justifyContent: "center", gap: "7px", padding: "0 13px", border: "0", borderRadius: "12px", background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", boxShadow: "0 6px 15px rgba(37,99,235,.22)", fontSize: "12.5px", fontWeight: "760", cursor: "pointer" },
   composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "#94a3b8", fontSize: "9.5px", fontWeight: "600" },
 };

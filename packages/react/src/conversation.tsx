@@ -671,7 +671,7 @@ export function ChatGateConversation({
               aria-hidden="true"
               style={{
                 ...styles.presenceDot,
-                ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
+                ...(agentOnline ? { background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 14%, transparent)" } : {}),
               }}
             />
             {agentOnline ? "Online" : "Support"}
@@ -696,7 +696,7 @@ export function ChatGateConversation({
             title={agentOnline ? "Online" : "Support"}
             style={{
               ...styles.minimalDot,
-              ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
+              ...(agentOnline ? { background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 14%, transparent)" } : {}),
             }}
           />
         </header>
@@ -800,7 +800,7 @@ export function ChatGateConversation({
             <button
               className={recording ? "cg-tool-button cg-recording" : "cg-tool-button"}
               type="button"
-              style={{ ...styles.toolButton, ...(recording ? { background: "#fee2e2", color: "#b91c1c" } : {}) }}
+              style={{ ...styles.toolButton, ...(recording ? { background: "color-mix(in srgb, var(--cg-danger, #ef4444) 10%, transparent)", color: "var(--cg-danger, #b91c1c)" } : {}) }}
               disabled={state.sending && !recording}
               onClick={recording ? stopRecording : () => void startRecording()}
               aria-label={recording ? "Stop recording" : "Record voice message"}
@@ -831,8 +831,8 @@ export function ChatGateConversation({
         </div>
         <div className="cg-composer-footer" style={styles.composerFooter}>
           {recording ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#b91c1c", fontWeight: 700 }}>
-              <span className="cg-recording-dot" aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: "#dc2626" }} />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--cg-danger, #b91c1c)", fontWeight: 700 }}>
+              <span className="cg-recording-dot" aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: "var(--cg-danger, #dc2626)" }} />
               Recording voice message…
             </span>
           ) : (

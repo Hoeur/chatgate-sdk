@@ -26,6 +26,10 @@ export interface ChatGateTheme {
   incomingBubbleColor?: string;
   /** Outer corner radius of the widget. */
   borderRadius?: number;
+  /** Error / recording / destructive elements. */
+  dangerColor?: string;
+  /** Presence / online indicator. */
+  onlineColor?: string;
 }
 
 export interface ResolvedChatGateTheme {
@@ -57,8 +61,8 @@ export function resolveChatGateTheme(theme?: ChatGateTheme): ResolvedChatGateThe
     muted: theme?.mutedTextColor ?? "#64748b",
     incoming: theme?.incomingBubbleColor ?? "#eff4fa",
     radius: theme?.borderRadius ?? 16,
-    danger: "#b91c1c",
-    online: "#22c55e",
+    danger: theme?.dangerColor ?? "#b91c1c",
+    online: theme?.onlineColor ?? "#22c55e",
   };
 }
 

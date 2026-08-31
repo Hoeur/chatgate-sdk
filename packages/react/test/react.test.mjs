@@ -54,7 +54,7 @@ test("renders the packaged conversation navigator during SSR", () => {
         title: "Merchant support",
         sidebarWidth: 300,
         labels: { searchPlaceholder: "Search inbox" },
-        theme: { accentColor: "#7c3aed", borderRadius: 24 },
+        theme: { accentColor: "#7c3aed", borderRadius: 24, dangerColor: "#dc2626", onlineColor: "#0e9f6e" },
       }),
     ),
   );
@@ -63,6 +63,8 @@ test("renders the packaged conversation navigator during SSR", () => {
   assert.match(html, /No conversations yet/);
   assert.match(html, /Search inbox/);
   assert.match(html, /--cg-accent:#7c3aed/);
+  assert.match(html, /--cg-danger:#dc2626/);
+  assert.match(html, /--cg-online:#0e9f6e/);
   assert.match(html, /Select a conversation/);
 });
 

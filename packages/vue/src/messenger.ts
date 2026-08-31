@@ -245,7 +245,7 @@ export const ChatGateMessenger = defineComponent({
                 h("h2", { style: { margin: 0, fontSize: "20px" } }, props.title),
                 h("p", { style: { margin: "8px 0 0", color: "var(--cg-accent-text, #fff)", opacity: 0.85, fontSize: "13px", lineHeight: 1.5 } }, props.greeting ?? `Welcome to ${props.title}. Choose a conversation or start chatting with a business.`),
                 h("small", { style: { display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "12px", color: "var(--cg-accent-text, #fff)", opacity: 0.92, fontWeight: 700 } }, [
-                  h("span", { "aria-hidden": "true", style: { width: "8px", height: "8px", borderRadius: "999px", background: "#4ade80", boxShadow: "0 0 0 3px rgba(74,222,128,.25)" } }),
+                  h("span", { "aria-hidden": "true", style: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--cg-online, #4ade80)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #4ade80) 13%, transparent)" } }),
                   labels.online,
                 ]),
               ]),
@@ -263,7 +263,7 @@ export const ChatGateMessenger = defineComponent({
             ])
           : null,
         h("div", { style: bodyStyle, "aria-busy": state.value.loading || state.value.switching }, [
-          state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", background: "#fef2f2", color: "#b91c1c" } }, [state.value.error.message, h("button", { type: "button", onClick: () => void controller.reload() }, labels.retry)]) : null,
+          state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 20%, transparent)", background: "color-mix(in srgb, var(--cg-danger, #ef4444) 7%, transparent)", color: "var(--cg-danger, #b91c1c)" } }, [state.value.error.message, h("button", { type: "button", style: { marginLeft: "8px", border: 0, background: "transparent", color: "var(--cg-danger, #b91c1c)", fontWeight: 700, textDecoration: "underline" }, onClick: () => void controller.reload() }, labels.retry)]) : null,
           conversations.length > 0 ? h("p", { style: sectionStyle }, labels.conversations) : null,
           ...conversations.map((conversation) => conversationRow(conversation, labels, () => controller.selectConversation(conversation.id))),
           businessUnits.length > 0 ? h("p", { style: { ...sectionStyle, marginTop: "18px" } }, labels.businesses) : null,

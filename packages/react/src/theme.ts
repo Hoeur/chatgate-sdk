@@ -11,6 +11,8 @@ export interface ChatGateTheme {
   borderColor?: string;
   borderRadius?: number | string;
   fontFamily?: string;
+  dangerColor?: string;
+  onlineColor?: string;
 }
 
 type ChatGateThemeVariables = CSSProperties & Record<`--cg-${string}`, string>;
@@ -34,5 +36,7 @@ export function createChatGateThemeVariables(
       : theme.borderRadius;
   }
   if (theme.fontFamily) variables["--cg-font"] = theme.fontFamily;
+  if (theme.dangerColor) variables["--cg-danger"] = theme.dangerColor;
+  if (theme.onlineColor) variables["--cg-online"] = theme.onlineColor;
   return variables;
 }

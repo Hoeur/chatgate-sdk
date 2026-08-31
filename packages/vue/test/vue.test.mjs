@@ -69,13 +69,17 @@ test("compiles theme tokens into --cg-* custom properties", () => {
     createChatGateThemeVariables({ accentColor: "#7c3aed", borderRadius: 12, fontFamily: "Inter" }),
     { "--cg-accent": "#7c3aed", "--cg-radius": "12px", "--cg-font": "Inter" },
   );
+  assert.deepEqual(
+    createChatGateThemeVariables({ dangerColor: "#dc2626", onlineColor: "#0e9f6e" }),
+    { "--cg-danger": "#dc2626", "--cg-online": "#0e9f6e" },
+  );
 });
 
 test("applies the theme prop and label overrides", async () => {
   const app = createSSRApp({
     render: () => h(ChatGateMessenger, {
       title: "Boutique",
-      theme: { accentColor: "#7c3aed", borderRadius: 8 },
+      theme: { accentColor: "#7c3aed", borderRadius: 8, dangerColor: "#dc2626", onlineColor: "#0e9f6e" },
       labels: { noConversations: "Aucune conversation", searchPlaceholder: "Rechercher" },
     }),
   });
@@ -84,6 +88,8 @@ test("applies the theme prop and label overrides", async () => {
   const html = await renderToString(app);
   assert.match(html, /--cg-accent:#7c3aed/);
   assert.match(html, /--cg-radius:8px/);
+  assert.match(html, /--cg-danger:#dc2626/);
+  assert.match(html, /--cg-online:#0e9f6e/);
   assert.match(html, /Aucune conversation/);
   assert.match(html, /Rechercher/);
   assert.doesNotMatch(html, /No conversations yet/);
