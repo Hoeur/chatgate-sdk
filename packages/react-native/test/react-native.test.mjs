@@ -61,6 +61,7 @@ test("exposes the labels prop and type on the messenger", async () => {
   const messengerTypes = await readFile(new URL("../dist/messenger.d.ts", import.meta.url), "utf8");
   assert.match(messengerTypes, /ChatGateMessengerLabels/);
   assert.match(messengerTypes, /labels\?: ChatGateMessengerLabels/);
+  assert.match(messengerTypes, /loading\?:/);
   const indexTypes = await readFile(new URL("../dist/index.d.ts", import.meta.url), "utf8");
   assert.match(indexTypes, /ChatGateMessengerLabels/);
 });
