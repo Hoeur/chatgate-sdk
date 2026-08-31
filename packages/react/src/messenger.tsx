@@ -25,6 +25,8 @@ export interface ChatGateMessengerLabels {
   selectConversation?: string;
   online?: string;
   retry?: string;
+  businessStart?: string;
+  businessFallback?: string;
 }
 
 export interface ChatGateMessengerProps
@@ -47,6 +49,8 @@ const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
   selectConversation: "Select a conversation to see its full message history.",
   online: "We're online",
   retry: "Retry",
+  businessStart: "{type} · start a chat",
+  businessFallback: "Business",
 };
 
 const messengerCss = `
@@ -237,20 +241,26 @@ function ConversationRow({
 
 function BusinessUnitRow({
   unit,
+  labels,
   disabled,
   onSelect,
 }: {
   unit: ChatGateBusinessUnit;
+  labels: Required<ChatGateMessengerLabels>;
   disabled: boolean;
   onSelect: () => void;
 }) {
   const name = unitName(unit, unit.externalId);
+  const preview = labels.businessStart.replace(
+    "{type}",
+    unit.type?.trim() || labels.businessFallback,
+  );
   return (
     <button type="button" className="cg-messenger-row" style={styles.row} disabled={disabled} onClick={onSelect}>
       <span aria-hidden="true" style={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
       <span style={styles.rowMeta}>
         <span style={styles.rowName}>{name}</span>
-        <span style={styles.rowDescription}>{`${unit.type?.trim() || "Business"} support`}</span>
+        <span style={styles.rowDescription}>{preview}</span>
       </span>
       <span aria-hidden="true">›</span>
     </button>
@@ -377,6 +387,7 @@ function ChatGateConversationNavigator({
                   <BusinessUnitRow
                     key={unit.id}
                     unit={unit}
+                    labels={labels}
                     disabled={state.switching}
                     onSelect={() => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined)}
                   />
