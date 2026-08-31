@@ -27,6 +27,8 @@ export interface ChatGateMessengerLabels {
   retry?: string;
   loading?: string;
   emptyPreview?: string;
+  businessStart?: string;
+  businessFallback?: string;
 }
 
 const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
@@ -39,6 +41,8 @@ const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
   retry: "Retry",
   loading: "Loading conversations...",
   emptyPreview: "Tap to start the conversation",
+  businessStart: "{type} · start a chat",
+  businessFallback: "Business",
 };
 
 /*
@@ -127,15 +131,20 @@ function conversationRow(
 
 function businessUnitRow(
   unit: ChatGateBusinessUnit,
+  labels: Required<ChatGateMessengerLabels>,
   disabled: boolean,
   onSelect: () => void,
 ): VNodeChild {
   const name = unitName(unit, unit.externalId);
+  const preview = labels.businessStart.replace(
+    "{type}",
+    unit.type?.trim() || labels.businessFallback,
+  );
   return h("button", { key: unit.id, type: "button", style: rowStyle, disabled, onClick: onSelect }, [
     h("span", { "aria-hidden": "true", style: { ...avatarStyle, background: "color-mix(in srgb, var(--cg-accent, #2563eb) 14%, #fff)", color: "var(--cg-accent, #2563eb)" } }, name.charAt(0).toUpperCase()),
     h("span", { style: { display: "flex", minWidth: 0, flex: 1, flexDirection: "column", gap: "3px" } }, [
       h("strong", { style: nameStyle }, name),
-      h("small", { style: previewStyle }, `${unit.type || "Business"} · start a chat`),
+      h("small", { style: previewStyle }, preview),
     ]),
     h("span", { "aria-hidden": "true", style: { color: "var(--cg-muted, #64748b)" } }, "›"),
   ]);
@@ -258,7 +267,7 @@ export const ChatGateMessenger = defineComponent({
           conversations.length > 0 ? h("p", { style: sectionStyle }, labels.conversations) : null,
           ...conversations.map((conversation) => conversationRow(conversation, labels, () => controller.selectConversation(conversation.id))),
           businessUnits.length > 0 ? h("p", { style: { ...sectionStyle, marginTop: "18px" } }, labels.businesses) : null,
-          ...businessUnits.map((unit) => businessUnitRow(unit, state.value.switching, () => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined))),
+          ...businessUnits.map((unit) => businessUnitRow(unit, labels, state.value.switching, () => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined))),
           !state.value.loading && conversations.length === 0 && businessUnits.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, term ? labels.noSearchResults : labels.noConversations) : null,
           state.value.loading && state.value.conversations.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, labels.loading) : null,
         ]),
