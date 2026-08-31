@@ -31,6 +31,7 @@ export interface ChatGateMessengerLabels {
   noSearchResults?: string;
   online?: string;
   retry?: string;
+  loading?: string;
   emptyPreview?: string;
   businessStart?: string;
   businessFallback?: string;
@@ -44,6 +45,7 @@ const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
   noSearchResults: "No matches.",
   online: "We're online",
   retry: "tap to retry",
+  loading: "Loading conversations...",
   emptyPreview: "Tap to start the conversation",
   businessStart: "{type} · start a chat",
   businessFallback: "Business",
@@ -273,7 +275,10 @@ function ChatGateConversationNavigator({
         ))}
 
         {state.loading && state.conversations.length === 0 ? (
-          <ActivityIndicator color={c.accent} style={styles.loading} />
+          <View style={styles.loading}>
+            <ActivityIndicator color={c.accent} />
+            <Text style={styles.loadingText}>{labels.loading}</Text>
+          </View>
         ) : null}
         {nothingToShow ? (
           <Text style={styles.empty}>{term ? labels.noSearchResults : labels.noConversations}</Text>
@@ -321,7 +326,8 @@ function navStyles(t: ResolvedChatGateTheme) {
     businessSection: { marginTop: 18 } as const,
     error: { marginBottom: 12, borderRadius: 10, padding: 10, backgroundColor: "#fef2f2" } as const,
     errorText: { color: t.danger } as const,
-    loading: { flex: 1, marginVertical: 48 } as const,
+    loading: { flex: 1, marginVertical: 48, alignItems: "center", justifyContent: "center" } as const,
+    loadingText: { marginTop: 12, color: t.muted, fontSize: 13, textAlign: "center" } as const,
     empty: { flex: 1, marginVertical: 48, color: t.muted, textAlign: "center" } as const,
   };
 }
