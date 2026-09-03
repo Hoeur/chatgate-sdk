@@ -1,11 +1,6 @@
-"use client";
-
 import { useMemo, type ReactNode } from "react";
 import { createChatGateClient } from "@chatgate/core";
-import {
-  ChatGateMessenger,
-  type ChatGateMessengerProps,
-} from "./messenger.js";
+import { ChatGateMessenger, type ChatGateMessengerProps } from "./messenger.js";
 import { ChatGateProvider } from "./provider.js";
 
 export interface ChatGateProps extends ChatGateMessengerProps {
@@ -22,6 +17,7 @@ export interface ChatGateProps extends ChatGateMessengerProps {
   fallback?: ReactNode;
   autoStart?: boolean;
   stopOnUnmount?: boolean;
+  disconnectOnBackground?: boolean;
 }
 
 export function ChatGate({
@@ -38,21 +34,23 @@ export function ChatGate({
   fallback,
   autoStart = true,
   stopOnUnmount = true,
+  disconnectOnBackground = true,
   ...conversationProps
 }: ChatGateProps) {
   const client = useMemo(
-    () => createChatGateClient({
-      baseUrl,
-      publicKey,
-      ...(organizationId ? { organizationId } : {}),
-      ...(userId ? { userId } : {}),
-      ...(userName ? { userName } : {}),
-      ...(userHash ? { userHash } : {}),
-      ...(socketUrl ? { socketUrl } : {}),
-      ...(channel ? { channel } : {}),
-      ...(roomId ? { roomId } : {}),
-      ...(businessUnitExternalId ? { businessUnitExternalId } : {}),
-    }),
+    () =>
+      createChatGateClient({
+        baseUrl,
+        publicKey,
+        ...(organizationId ? { organizationId } : {}),
+        ...(userId ? { userId } : {}),
+        ...(userName ? { userName } : {}),
+        ...(userHash ? { userHash } : {}),
+        ...(socketUrl ? { socketUrl } : {}),
+        ...(channel ? { channel } : {}),
+        ...(roomId ? { roomId } : {}),
+        ...(businessUnitExternalId ? { businessUnitExternalId } : {}),
+      }),
     [
       baseUrl,
       businessUnitExternalId,
@@ -68,7 +66,13 @@ export function ChatGate({
   );
 
   return (
-    <ChatGateProvider client={client} fallback={fallback} autoStart={autoStart} stopOnUnmount={stopOnUnmount}>
+    <ChatGateProvider
+      client={client}
+      fallback={fallback}
+      autoStart={autoStart}
+      stopOnUnmount={stopOnUnmount}
+      disconnectOnBackground={disconnectOnBackground}
+    >
       <ChatGateMessenger {...conversationProps} />
     </ChatGateProvider>
   );

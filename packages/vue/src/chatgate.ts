@@ -45,6 +45,7 @@ export const ChatGate = defineComponent({
 
     const messengerProps = computed(() => ({
       showConversationList: props.showConversationList,
+      showBusinessDirectory: props.showBusinessDirectory,
       showSearch: props.showSearch,
       header: props.header,
       title: props.title,

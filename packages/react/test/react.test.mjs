@@ -34,6 +34,8 @@ test("renders the one-component publishable-key integration during SSR", () => {
       publicKey: "cg_pub_example",
       organizationId: "org-1",
       userId: "customer-123",
+      autoStart: false,
+      stopOnUnmount: false,
       title: "Simple support",
     }),
   );
@@ -52,7 +54,7 @@ test("renders the packaged conversation navigator during SSR", () => {
         title: "Merchant support",
         sidebarWidth: 300,
         labels: { searchPlaceholder: "Search inbox" },
-        theme: { accentColor: "#7c3aed", borderRadius: 24 },
+        theme: { accentColor: "#7c3aed", borderRadius: 24, dangerColor: "#dc2626", onlineColor: "#0e9f6e" },
       }),
     ),
   );
@@ -61,5 +63,23 @@ test("renders the packaged conversation navigator during SSR", () => {
   assert.match(html, /No conversations yet/);
   assert.match(html, /Search inbox/);
   assert.match(html, /--cg-accent:#7c3aed/);
+  assert.match(html, /--cg-danger:#dc2626/);
+  assert.match(html, /--cg-online:#0e9f6e/);
   assert.match(html, /Select a conversation/);
+});
+
+test("hides the conversation search field when showSearch is false", () => {
+  const html = renderToStaticMarkup(
+    React.createElement(
+      ChatGateProvider,
+      { client: fakeClient(), autoStart: false },
+      React.createElement(ChatGateMessenger, {
+        title: "Merchant support",
+        showSearch: false,
+      }),
+    ),
+  );
+
+  assert.match(html, /Merchant support/);
+  assert.doesNotMatch(html, /type="search"/);
 });
