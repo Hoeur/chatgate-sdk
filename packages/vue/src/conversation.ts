@@ -11,6 +11,7 @@ import {
   type VNodeChild,
 } from "vue";
 import {
+  createChatGateSchemeCss,
   resolveMessageRole,
   sanitizeUrl,
   CHATGATE_ROLE_LABELS,
@@ -35,15 +36,15 @@ const componentCss = `
     outline-offset: 2px;
   }
   [data-chatgate-conversation] .cg-tool-button:hover:not(:disabled),
-  [data-chatgate-conversation] .cg-message-action:hover { background: #eff4fb !important; }
+  [data-chatgate-conversation] .cg-message-action:hover { background: var(--cg-hover, #eff4fb) !important; }
   [data-chatgate-conversation] .cg-send-button:hover:not(:disabled) { background: var(--cg-accent-hover, #1d4ed8) !important; }
   [data-chatgate-conversation] button:disabled { cursor: not-allowed !important; opacity: .52; }
   [data-chatgate-conversation] .cg-message-image { transition: transform 160ms ease; }
   [data-chatgate-conversation] .cg-message-image:hover { transform: scale(1.012); }
   [data-chatgate-conversation] .cg-recording { animation: cg-pulse 1.2s ease-in-out infinite; }
   @keyframes cg-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, .35); }
-    50% { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cg-danger, #dc2626) 35%, transparent); }
+    50% { box-shadow: 0 0 0 7px transparent; }
   }
   @media (max-width: 560px) {
     [data-chatgate-conversation] .cg-chat-header { padding: 13px 14px !important; }
@@ -59,7 +60,7 @@ const componentCss = `
     [data-chatgate-conversation] *::before,
     [data-chatgate-conversation] *::after { animation: none !important; transition: none !important; }
   }
-`;
+` + createChatGateSchemeCss("[data-chatgate-conversation]");
 
 const styles: Record<string, CSSProperties> = {
   root: {
@@ -72,7 +73,7 @@ const styles: Record<string, CSSProperties> = {
     border: "1px solid var(--cg-border, #d6e0ee)",
     borderRadius: "var(--cg-radius, 20px)",
     background: "var(--cg-surface, #fff)",
-    boxShadow: "0 18px 48px rgba(30, 64, 175, .10)",
+    boxShadow: "0 18px 48px var(--cg-shadow, rgba(30, 64, 175, .10))",
     color: "var(--cg-text, #14213d)",
     fontFamily: "var(--cg-font, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif)",
   },
@@ -95,10 +96,10 @@ const styles: Record<string, CSSProperties> = {
     width: "36px",
     height: "36px",
     placeItems: "center",
-    border: "1px solid #dce5f1",
+    border: "1px solid var(--cg-border, #dce5f1)",
     borderRadius: "12px",
-    background: "#f8fafc",
-    color: "#334155",
+    background: "var(--cg-subtle, #f8fafc)",
+    color: "var(--cg-muted, #334155)",
     cursor: "pointer",
   },
   avatar: {
@@ -109,8 +110,8 @@ const styles: Record<string, CSSProperties> = {
     placeItems: "center",
     borderRadius: "14px",
     background: "var(--cg-accent, #2563eb)",
-    boxShadow: "0 8px 18px rgba(37, 99, 235, .24)",
-    color: "#fff",
+    boxShadow: "0 8px 18px color-mix(in srgb, var(--cg-accent, #2563eb) 24%, transparent)",
+    color: "var(--cg-accent-text, #fff)",
   },
   identityText: { display: "flex", minWidth: "0", flexDirection: "column", gap: "2px" },
   title: { overflow: "hidden", fontSize: "15px", fontWeight: "760", lineHeight: "1.3", textOverflow: "ellipsis", whiteSpace: "nowrap" },
@@ -121,15 +122,15 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     gap: "7px",
     padding: "7px 10px",
-    border: "1px solid #dce5f1",
+    border: "1px solid var(--cg-border, #dce5f1)",
     borderRadius: "999px",
-    background: "#f8fafc",
-    color: "#52627a",
+    background: "var(--cg-subtle, #f8fafc)",
+    color: "var(--cg-muted, #52627a)",
     fontSize: "11.5px",
     fontWeight: "700",
   },
-  presenceDot: { width: "8px", height: "8px", borderRadius: "999px", background: "#94a3b8", boxShadow: "0 0 0 3px rgba(148,163,184,.14)" },
-  presenceDotOnline: { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" },
+  presenceDot: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--cg-muted, #94a3b8)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-muted, #94a3b8) 14%, transparent)" },
+  presenceDotOnline: { background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 14%, transparent)" },
   messages: {
     display: "flex",
     minHeight: "0",
@@ -146,11 +147,11 @@ const styles: Record<string, CSSProperties> = {
   bubble: {
     minWidth: "48px",
     padding: "9px 12px 8px",
-    border: "1px solid #e0e7f0",
+    border: "1px solid var(--cg-border, #e0e7f0)",
     borderRadius: "17px 17px 17px 6px",
-    background: "#fff",
-    boxShadow: "0 4px 14px rgba(15, 23, 42, .055)",
-    color: "#172033",
+    background: "var(--cg-bubble-in, #fff)",
+    boxShadow: "0 4px 14px var(--cg-shadow, rgba(15, 23, 42, .055))",
+    color: "var(--cg-text, #172033)",
     fontSize: "14px",
     lineHeight: "1.45",
     overflowWrap: "anywhere",
@@ -160,40 +161,40 @@ const styles: Record<string, CSSProperties> = {
     borderColor: "var(--cg-accent, #2563eb)",
     borderRadius: "17px 17px 6px 17px",
     background: "var(--cg-accent, #2563eb)",
-    boxShadow: "0 7px 18px rgba(37, 99, 235, .19)",
-    color: "#fff",
+    boxShadow: "0 7px 18px color-mix(in srgb, var(--cg-accent, #2563eb) 19%, transparent)",
+    color: "var(--cg-accent-text, #fff)",
   },
   mediaBubble: { width: "min(370px, 72vw)", padding: "6px" },
-  replyQuote: { marginBottom: "7px", padding: "7px 9px", borderLeft: "3px solid currentColor", borderRadius: "8px", background: "rgba(148,163,184,.16)", fontSize: "11.5px", opacity: "0.86" },
-  imageLink: { display: "block", overflow: "hidden", borderRadius: "12px", background: "#e8eef7" },
+  replyQuote: { marginBottom: "7px", padding: "7px 9px", borderLeft: "3px solid currentColor", borderRadius: "8px", background: "color-mix(in srgb, var(--cg-muted, #94a3b8) 16%, transparent)", fontSize: "11.5px", opacity: "0.86" },
+  imageLink: { display: "block", overflow: "hidden", borderRadius: "12px", background: "var(--cg-subtle, #e8eef7)" },
   image: { display: "block", width: "100%", maxHeight: "310px", borderRadius: "12px", objectFit: "cover" },
   audio: { display: "block", width: "min(300px, 68vw)", maxWidth: "100%" },
   fileLink: { display: "flex", alignItems: "center", gap: "10px", minWidth: "210px", color: "inherit", fontWeight: "720", textDecoration: "none" },
-  fileIcon: { display: "grid", flex: "0 0 auto", width: "36px", height: "36px", placeItems: "center", borderRadius: "10px", background: "rgba(148,163,184,.18)" },
+  fileIcon: { display: "grid", flex: "0 0 auto", width: "36px", height: "36px", placeItems: "center", borderRadius: "10px", background: "color-mix(in srgb, var(--cg-muted, #94a3b8) 18%, transparent)" },
   fileText: { display: "flex", minWidth: "0", flexDirection: "column", gap: "1px" },
   fileName: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   fileSize: { fontSize: "10.5px", fontWeight: "600", opacity: "0.7" },
   messageMeta: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "6px", marginTop: "5px", fontSize: "9.5px", fontWeight: "650", opacity: "0.68" },
   messageFooter: { display: "flex", alignItems: "center", gap: "6px", minHeight: "24px" },
   reactions: { display: "flex", flexWrap: "wrap", gap: "4px" },
-  reaction: { minHeight: "23px", padding: "1px 7px", border: "1px solid #d8e1ee", borderRadius: "999px", background: "#fff", color: "#334155", boxShadow: "0 2px 6px rgba(15,23,42,.04)", fontSize: "11px", cursor: "pointer" },
-  messageAction: { minHeight: "26px", padding: "3px 7px", border: "0", borderRadius: "8px", background: "transparent", color: "#52627a", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
-  loadEarlier: { alignSelf: "center", marginBottom: "4px", padding: "7px 11px", border: "1px solid #d7e1ee", borderRadius: "999px", background: "rgba(255,255,255,.88)", color: "#52627a", fontSize: "11.5px", fontWeight: "700", cursor: "pointer" },
-  status: { display: "grid", margin: "auto", padding: "26px", placeItems: "center", color: "#64748b", textAlign: "center" },
-  emptyIcon: { display: "grid", width: "48px", height: "48px", marginBottom: "12px", placeItems: "center", border: "1px solid #d9e4f2", borderRadius: "16px", background: "#fff", boxShadow: "0 8px 22px rgba(30,64,175,.08)", color: "#2563eb" },
-  emptyTitle: { marginBottom: "4px", color: "#1e293b", fontSize: "14px", fontWeight: "760" },
-  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", margin: "10px 12px 0", padding: "9px 11px", border: "1px solid #fecaca", borderRadius: "12px", background: "#fff1f2", color: "#b42318", fontSize: "12px" },
-  retryButton: { padding: "4px 8px", border: "1px solid #fda4af", borderRadius: "8px", background: "#fff", color: "#be123c", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
-  typing: { minHeight: "25px", padding: "5px 16px 2px", background: "#fff", color: "#64748b", fontSize: "11.5px" },
-  composer: { display: "flex", flexDirection: "column", gap: "8px", padding: "9px 12px 11px", borderTop: "1px solid #e5ebf4", background: "#fff" },
-  replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "8px 10px", border: "1px solid #dbeafe", borderRadius: "11px", background: "#eff6ff", color: "#1e40af", fontSize: "11.5px" },
-  cancelReply: { padding: "3px 7px", border: "0", borderRadius: "7px", background: "transparent", color: "#1d4ed8", fontSize: "11px", fontWeight: "750", cursor: "pointer" },
-  composerRow: { display: "flex", alignItems: "center", gap: "5px", minHeight: "50px", padding: "4px", border: "1px solid #d4deeb", borderRadius: "16px", background: "#f8fafc", boxShadow: "0 4px 14px rgba(15,23,42,.04)" },
-  input: { minWidth: "0", height: "40px", flex: "1", padding: "0 8px", border: "0", outline: "0", background: "transparent", color: "#172033", fontSize: "13.5px" },
-  toolButton: { display: "grid", flex: "0 0 auto", width: "40px", height: "40px", padding: "0", placeItems: "center", border: "0", borderRadius: "11px", background: "transparent", color: "#52627a", cursor: "pointer" },
-  toolButtonRecording: { background: "#fee2e2", color: "#b91c1c" },
-  sendButton: { display: "inline-flex", height: "40px", alignItems: "center", justifyContent: "center", gap: "7px", padding: "0 13px", border: "0", borderRadius: "12px", background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", boxShadow: "0 6px 15px rgba(37,99,235,.22)", fontSize: "12.5px", fontWeight: "760", cursor: "pointer" },
-  composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "#94a3b8", fontSize: "9.5px", fontWeight: "600" },
+  reaction: { minHeight: "23px", padding: "1px 7px", border: "1px solid var(--cg-border, #d8e1ee)", borderRadius: "999px", background: "var(--cg-surface, #fff)", color: "var(--cg-muted, #334155)", boxShadow: "0 2px 6px var(--cg-shadow, rgba(15,23,42,.04))", fontSize: "11px", cursor: "pointer" },
+  messageAction: { minHeight: "26px", padding: "3px 7px", border: "0", borderRadius: "8px", background: "transparent", color: "var(--cg-muted, #52627a)", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
+  loadEarlier: { alignSelf: "center", marginBottom: "4px", padding: "7px 11px", border: "1px solid var(--cg-border, #d7e1ee)", borderRadius: "999px", background: "var(--cg-surface, rgba(255,255,255,.88))", color: "var(--cg-muted, #52627a)", fontSize: "11.5px", fontWeight: "700", cursor: "pointer" },
+  status: { display: "grid", margin: "auto", padding: "26px", placeItems: "center", color: "var(--cg-muted, #64748b)", textAlign: "center" },
+  emptyIcon: { display: "grid", width: "48px", height: "48px", marginBottom: "12px", placeItems: "center", border: "1px solid var(--cg-border, #d9e4f2)", borderRadius: "16px", background: "var(--cg-surface, #fff)", boxShadow: "0 8px 22px var(--cg-shadow, rgba(30,64,175,.08))", color: "var(--cg-accent, #2563eb)" },
+  emptyTitle: { marginBottom: "4px", color: "var(--cg-text, #1e293b)", fontSize: "14px", fontWeight: "760" },
+  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", margin: "10px 12px 0", padding: "9px 11px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 24%, transparent)", borderRadius: "12px", background: "color-mix(in srgb, var(--cg-danger, #ef4444) 8%, transparent)", color: "var(--cg-danger, #b42318)", fontSize: "12px" },
+  retryButton: { padding: "4px 8px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 24%, transparent)", borderRadius: "8px", background: "var(--cg-surface, #fff)", color: "var(--cg-danger, #be123c)", fontSize: "11px", fontWeight: "700", cursor: "pointer" },
+  typing: { minHeight: "25px", padding: "5px 16px 2px", background: "var(--cg-surface, #fff)", color: "var(--cg-muted, #64748b)", fontSize: "11.5px" },
+  composer: { display: "flex", flexDirection: "column", gap: "8px", padding: "9px 12px 11px", borderTop: "1px solid var(--cg-border, #e5ebf4)", background: "var(--cg-surface, #fff)" },
+  replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", padding: "8px 10px", border: "1px solid var(--cg-border, #dbeafe)", borderRadius: "11px", background: "var(--cg-subtle, #eff6ff)", color: "var(--cg-accent-hover, #1e40af)", fontSize: "11.5px" },
+  cancelReply: { padding: "3px 7px", border: "0", borderRadius: "7px", background: "transparent", color: "var(--cg-accent-hover, #1d4ed8)", fontSize: "11px", fontWeight: "750", cursor: "pointer" },
+  composerRow: { display: "flex", alignItems: "center", gap: "5px", minHeight: "50px", padding: "4px", border: "1px solid var(--cg-border, #d4deeb)", borderRadius: "16px", background: "var(--cg-subtle, #f8fafc)", boxShadow: "0 4px 14px var(--cg-shadow, rgba(15,23,42,.04))" },
+  input: { minWidth: "0", height: "40px", flex: "1", padding: "0 8px", border: "0", outline: "0", background: "transparent", color: "var(--cg-text, #172033)", fontSize: "13.5px" },
+  toolButton: { display: "grid", flex: "0 0 auto", width: "40px", height: "40px", padding: "0", placeItems: "center", border: "0", borderRadius: "11px", background: "transparent", color: "var(--cg-muted, #52627a)", cursor: "pointer" },
+  toolButtonRecording: { background: "color-mix(in srgb, var(--cg-danger, #ef4444) 10%, transparent)", color: "var(--cg-danger, #b91c1c)" },
+  sendButton: { display: "inline-flex", height: "40px", alignItems: "center", justifyContent: "center", gap: "7px", padding: "0 13px", border: "0", borderRadius: "12px", background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", boxShadow: "0 6px 15px color-mix(in srgb, var(--cg-accent, #2563eb) 22%, transparent)", fontSize: "12.5px", fontWeight: "760", cursor: "pointer" },
+  composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "var(--cg-muted, #94a3b8)", fontSize: "9.5px", fontWeight: "600" },
 };
 
 function fileMessageType(file: File): Exclude<ChatGateMessageType, "encrypted"> {
@@ -224,9 +225,9 @@ function formatTime(value: string): string {
 }
 
 const ROLE_BADGE_COLORS: Record<ChatGateParticipantRole, { bg: string; color: string; border: string }> = {
-  customer: { bg: "#eef2f7", color: "#475569", border: "#dbe2ec" },
-  merchant: { bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" },
-  admin: { bg: "#f3e8ff", color: "#7e22ce", border: "#e9d5ff" },
+  customer: { bg: "var(--cg-hover, #eef2f7)", color: "var(--cg-role-customer, #475569)", border: "var(--cg-border, #dbe2ec)" },
+  merchant: { bg: "var(--cg-hover, #e0f2fe)", color: "var(--cg-role-merchant, #0369a1)", border: "var(--cg-border, #bae6fd)" },
+  admin: { bg: "var(--cg-hover, #f3e8ff)", color: "var(--cg-role-admin, #7e22ce)", border: "var(--cg-border, #e9d5ff)" },
 };
 
 function roleLabel(role: ChatGateParticipantRole, overrides?: Partial<Record<ChatGateParticipantRole, string>>): string {
@@ -429,7 +430,7 @@ export const ChatGateConversation = defineComponent({
       if (message.content && !(message.messageType === "voice" && message.content === "Voice message")) {
         bubbleChildren.push(h("div", message.content));
       }
-      bubbleChildren.push(h("div", { style: { ...styles.messageMeta, color: own ? "#dbeafe" : "#64748b" } }, [
+      bubbleChildren.push(h("div", { style: { ...styles.messageMeta, color: own ? "var(--cg-accent-text, #dbeafe)" : "var(--cg-muted, #64748b)" } }, [
         h("span", formatTime(message.createdAt)),
         own ? h("span", message.read ? "Seen" : "Sent") : null,
       ]));
@@ -469,7 +470,7 @@ export const ChatGateConversation = defineComponent({
             ? h("button", { class: "cg-message-action", type: "button", style: styles.messageAction, onClick: () => { const value = window.prompt("Edit message", message.content); if (value?.trim()) void controller.editMessage(message.id, value); } }, "Edit")
             : null,
           own
-            ? h("button", { class: "cg-message-action", type: "button", style: { ...styles.messageAction, color: "#be123c" }, onClick: () => { if (window.confirm("Delete this message?")) void controller.deleteMessage(message.id); } }, "Delete")
+            ? h("button", { class: "cg-message-action", type: "button", style: { ...styles.messageAction, color: "var(--cg-danger, #be123c)" }, onClick: () => { if (window.confirm("Delete this message?")) void controller.deleteMessage(message.id); } }, "Delete")
             : null,
         ]),
       ]);
@@ -481,6 +482,7 @@ export const ChatGateConversation = defineComponent({
       const typing = state.value.typingUsers[0];
       return h("section", {
         "data-chatgate-conversation": "",
+        "data-cg-scheme": props.theme?.colorScheme,
         style: { ...styles.root, ...createChatGateThemeVariables(props.theme) },
         "aria-label": props.title,
       }, [

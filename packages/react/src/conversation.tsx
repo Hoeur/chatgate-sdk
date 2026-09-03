@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import {
+  createChatGateSchemeCss,
   resolveMessageRole,
   sanitizeUrl,
   CHATGATE_ROLE_LABELS,
@@ -98,14 +99,14 @@ const componentCss = `
   [data-chatgate-conversation] .cg-message-menu summary { list-style: none; }
   [data-chatgate-conversation] .cg-message-menu summary::-webkit-details-marker { display: none; }
   [data-chatgate-conversation] .cg-message-menu[open] > summary {
-    background: #e8effb !important;
+    background: var(--cg-hover-strong, #e8effb) !important;
     color: var(--cg-accent-hover, #1d4ed8) !important;
   }
   [data-chatgate-conversation] .cg-message-menu__panel {
     animation: cg-menu-in 130ms ease-out;
   }
   [data-chatgate-conversation] .cg-message-action:hover,
-  [data-chatgate-conversation] .cg-tool-button:hover:not(:disabled) { background: #eff4fb !important; }
+  [data-chatgate-conversation] .cg-tool-button:hover:not(:disabled) { background: var(--cg-hover, #eff4fb) !important; }
   [data-chatgate-conversation] .cg-send-button:hover:not(:disabled) { background: var(--cg-accent-hover, #1d4ed8) !important; }
   [data-chatgate-conversation] button:disabled { cursor: not-allowed !important; opacity: .52; }
   [data-chatgate-conversation] .cg-message-image { transition: transform 160ms ease; }
@@ -117,8 +118,8 @@ const componentCss = `
   [data-chatgate-conversation] .cg-recording { animation: cg-pulse 1.2s ease-in-out infinite; }
   [data-chatgate-conversation] .cg-recording-dot { animation: cg-blink 1s ease-in-out infinite; }
   @keyframes cg-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, .35); }
-    50% { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0); }
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--cg-danger, #dc2626) 35%, transparent); }
+    50% { box-shadow: 0 0 0 7px transparent; }
   }
   @keyframes cg-blink {
     0%, 100% { opacity: 1; }
@@ -138,7 +139,7 @@ const componentCss = `
     [data-chatgate-conversation] *::before,
     [data-chatgate-conversation] *::after { animation: none !important; transition: none !important; }
   }
-`;
+` + createChatGateSchemeCss("[data-chatgate-conversation]");
 
 const styles: Record<string, CSSProperties> = {
   root: {
@@ -151,7 +152,7 @@ const styles: Record<string, CSSProperties> = {
     border: "1px solid var(--cg-border, #d6e0ee)",
     borderRadius: "var(--cg-radius, 20px)",
     background: "var(--cg-surface, #fff)",
-    boxShadow: "0 18px 48px rgba(30, 64, 175, .10)",
+    boxShadow: "0 18px 48px var(--cg-shadow, rgba(30, 64, 175, .10))",
     color: "var(--cg-text, #14213d)",
     fontFamily: "var(--cg-font, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif)",
   },
@@ -171,10 +172,10 @@ const styles: Record<string, CSSProperties> = {
     width: 36,
     height: 36,
     placeItems: "center",
-    border: "1px solid #dce5f1",
+    border: "1px solid var(--cg-border, #dce5f1)",
     borderRadius: 12,
-    background: "#f8fafc",
-    color: "#334155",
+    background: "var(--cg-subtle, #f8fafc)",
+    color: "var(--cg-muted, #334155)",
     cursor: "pointer",
   },
   headerMinimal: {
@@ -214,7 +215,7 @@ const styles: Record<string, CSSProperties> = {
     color: "var(--cg-muted, #64748b)",
     cursor: "pointer",
   },
-  minimalDot: { width: 8, height: 8, flex: "0 0 auto", borderRadius: 999, background: "#cbd5e1" },
+  minimalDot: { width: 8, height: 8, flex: "0 0 auto", borderRadius: 999, background: "var(--cg-muted, #cbd5e1)" },
   identity: { display: "flex", alignItems: "center", minWidth: 0, gap: 11 },
   avatar: {
     display: "grid",
@@ -224,8 +225,8 @@ const styles: Record<string, CSSProperties> = {
     placeItems: "center",
     borderRadius: 14,
     background: "var(--cg-accent, #2563eb)",
-    boxShadow: "0 8px 18px rgba(37, 99, 235, .24)",
-    color: "#fff",
+    boxShadow: "0 8px 18px color-mix(in srgb, var(--cg-accent, #2563eb) 24%, transparent)",
+    color: "var(--cg-accent-text, #fff)",
   },
   identityText: { display: "flex", minWidth: 0, flexDirection: "column", gap: 2 },
   title: { overflow: "hidden", fontSize: 15, fontWeight: 760, lineHeight: 1.3, textOverflow: "ellipsis", whiteSpace: "nowrap" },
@@ -236,14 +237,14 @@ const styles: Record<string, CSSProperties> = {
     alignItems: "center",
     gap: 7,
     padding: "7px 10px",
-    border: "1px solid #dce5f1",
+    border: "1px solid var(--cg-border, #dce5f1)",
     borderRadius: 999,
-    background: "#f8fafc",
-    color: "#52627a",
+    background: "var(--cg-subtle, #f8fafc)",
+    color: "var(--cg-muted, #52627a)",
     fontSize: 11.5,
     fontWeight: 700,
   },
-  presenceDot: { width: 8, height: 8, borderRadius: 999, background: "#94a3b8", boxShadow: "0 0 0 3px rgba(148,163,184,.14)" },
+  presenceDot: { width: 8, height: 8, borderRadius: 999, background: "var(--cg-muted, #94a3b8)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-muted, #94a3b8) 14%, transparent)" },
   messages: {
     display: "flex",
     minHeight: 0,
@@ -261,11 +262,11 @@ const styles: Record<string, CSSProperties> = {
   bubble: {
     minWidth: 48,
     padding: "9px 12px 8px",
-    border: "1px solid #e0e7f0",
+    border: "1px solid var(--cg-border, #e0e7f0)",
     borderRadius: "17px 17px 17px 6px",
-    background: "#fff",
-    boxShadow: "0 4px 14px rgba(15, 23, 42, .055)",
-    color: "#172033",
+    background: "var(--cg-bubble-in, #fff)",
+    boxShadow: "0 4px 14px var(--cg-shadow, rgba(15, 23, 42, .055))",
+    color: "var(--cg-text, #172033)",
     fontSize: 14,
     lineHeight: 1.45,
     overflowWrap: "anywhere",
@@ -275,16 +276,16 @@ const styles: Record<string, CSSProperties> = {
     borderColor: "var(--cg-accent, #2563eb)",
     borderRadius: "17px 17px 6px 17px",
     background: "var(--cg-accent, #2563eb)",
-    boxShadow: "0 7px 18px rgba(37, 99, 235, .19)",
-    color: "#fff",
+    boxShadow: "0 7px 18px color-mix(in srgb, var(--cg-accent, #2563eb) 19%, transparent)",
+    color: "var(--cg-accent-text, #fff)",
   },
   mediaBubble: { width: "min(370px, 72vw)", padding: 6 },
-  replyQuote: { marginBottom: 7, padding: "7px 9px", borderLeft: "3px solid currentColor", borderRadius: 8, background: "rgba(148,163,184,.16)", fontSize: 11.5, opacity: 0.86 },
-  imageLink: { display: "block", overflow: "hidden", borderRadius: 12, background: "#e8eef7" },
+  replyQuote: { marginBottom: 7, padding: "7px 9px", borderLeft: "3px solid currentColor", borderRadius: 8, background: "color-mix(in srgb, var(--cg-muted, #94a3b8) 16%, transparent)", fontSize: 11.5, opacity: 0.86 },
+  imageLink: { display: "block", overflow: "hidden", borderRadius: 12, background: "var(--cg-subtle, #e8eef7)" },
   image: { display: "block", width: "100%", maxHeight: 310, borderRadius: 12, objectFit: "cover" },
   audio: { display: "block", width: "min(300px, 68vw)", maxWidth: "100%" },
   fileLink: { display: "flex", alignItems: "center", gap: 10, minWidth: 210, color: "inherit", fontWeight: 720, textDecoration: "none" },
-  fileIcon: { display: "grid", flex: "0 0 auto", width: 36, height: 36, placeItems: "center", borderRadius: 10, background: "rgba(148,163,184,.18)" },
+  fileIcon: { display: "grid", flex: "0 0 auto", width: 36, height: 36, placeItems: "center", borderRadius: 10, background: "color-mix(in srgb, var(--cg-muted, #94a3b8) 18%, transparent)" },
   fileText: { display: "flex", minWidth: 0, flexDirection: "column", gap: 1 },
   fileName: { overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
   fileSize: { fontSize: 10.5, fontWeight: 600, opacity: 0.7 },
@@ -292,33 +293,33 @@ const styles: Record<string, CSSProperties> = {
   messageMeta: { display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6, marginTop: 5, fontSize: 9.5, fontWeight: 650, opacity: 0.68 },
   messageFooter: { display: "flex", alignItems: "center", gap: 6, minHeight: 24 },
   reactions: { display: "flex", flexWrap: "wrap", gap: 4 },
-  reaction: { minHeight: 23, padding: "1px 7px", border: "1px solid #d8e1ee", borderRadius: 999, background: "#fff", color: "#334155", boxShadow: "0 2px 6px rgba(15,23,42,.04)", fontSize: 11, cursor: "pointer" },
+  reaction: { minHeight: 23, padding: "1px 7px", border: "1px solid var(--cg-border, #d8e1ee)", borderRadius: 999, background: "var(--cg-surface, #fff)", color: "var(--cg-muted, #334155)", boxShadow: "0 2px 6px var(--cg-shadow, rgba(15,23,42,.04))", fontSize: 11, cursor: "pointer" },
   messageMenu: { position: "relative" },
-  messageMenuTrigger: { display: "grid", width: 28, height: 24, padding: 0, placeItems: "center", border: 0, borderRadius: 8, background: "transparent", color: "#7b8ba3", cursor: "pointer" },
-  messageMenuPanel: { position: "absolute", zIndex: 8, bottom: "calc(100% + 6px)", display: "flex", alignItems: "center", gap: 3, width: "max-content", padding: 5, border: "1px solid #dbe4f0", borderRadius: 12, background: "rgba(255,255,255,.98)", boxShadow: "0 14px 35px rgba(15, 23, 42, .16)", backdropFilter: "blur(12px)" },
-  messageAction: { minHeight: 30, padding: "5px 8px", border: 0, borderRadius: 8, background: "transparent", color: "#52627a", fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  messageMenuTrigger: { display: "grid", width: 28, height: 24, padding: 0, placeItems: "center", border: 0, borderRadius: 8, background: "transparent", color: "var(--cg-muted, #7b8ba3)", cursor: "pointer" },
+  messageMenuPanel: { position: "absolute", zIndex: 8, bottom: "calc(100% + 6px)", display: "flex", alignItems: "center", gap: 3, width: "max-content", padding: 5, border: "1px solid var(--cg-border, #dbe4f0)", borderRadius: 12, background: "var(--cg-surface, rgba(255,255,255,.98))", boxShadow: "0 14px 35px var(--cg-shadow, rgba(15, 23, 42, .16))", backdropFilter: "blur(12px)" },
+  messageAction: { minHeight: 30, padding: "5px 8px", border: 0, borderRadius: 8, background: "transparent", color: "var(--cg-muted, #52627a)", fontSize: 11, fontWeight: 700, cursor: "pointer" },
   reactionAction: { display: "grid", width: 30, minHeight: 30, padding: 0, placeItems: "center", border: 0, borderRadius: 8, background: "transparent", cursor: "pointer" },
-  loadEarlier: { alignSelf: "center", marginBottom: 4, padding: "7px 11px", border: "1px solid #d7e1ee", borderRadius: 999, background: "rgba(255,255,255,.88)", color: "#52627a", fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
-  status: { display: "grid", margin: "auto", padding: 26, placeItems: "center", color: "#64748b", textAlign: "center" },
-  emptyIcon: { display: "grid", width: 48, height: 48, marginBottom: 12, placeItems: "center", border: "1px solid #d9e4f2", borderRadius: 16, background: "#fff", boxShadow: "0 8px 22px rgba(30,64,175,.08)", color: "#2563eb" },
-  emptyTitle: { marginBottom: 4, color: "#1e293b", fontSize: 14, fontWeight: 760 },
-  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "10px 12px 0", padding: "9px 11px", border: "1px solid #fecaca", borderRadius: 12, background: "#fff1f2", color: "#b42318", fontSize: 12 },
-  retryButton: { padding: "4px 8px", border: "1px solid #fda4af", borderRadius: 8, background: "#fff", color: "#be123c", fontSize: 11, fontWeight: 700, cursor: "pointer" },
-  typing: { minHeight: 25, padding: "5px 16px 2px", background: "#fff", color: "#64748b", fontSize: 11.5 },
-  composer: { display: "flex", flexDirection: "column", gap: 8, padding: "9px 12px 11px", borderTop: "1px solid #e5ebf4", background: "#fff" },
-  replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "8px 10px", border: "1px solid #dbeafe", borderRadius: 11, background: "#eff6ff", color: "#1e40af", fontSize: 11.5 },
-  cancelReply: { padding: "3px 7px", border: 0, borderRadius: 7, background: "transparent", color: "#1d4ed8", fontSize: 11, fontWeight: 750, cursor: "pointer" },
-  composerRow: { display: "flex", alignItems: "center", gap: 5, minHeight: 50, padding: 4, border: "1px solid #d4deeb", borderRadius: 16, background: "#f8fafc", boxShadow: "0 4px 14px rgba(15,23,42,.04)" },
-  input: { minWidth: 0, height: 40, flex: 1, padding: "0 8px", border: 0, outline: 0, background: "transparent", color: "#172033", fontSize: 13.5 },
-  sendButton: { display: "inline-flex", height: 40, alignItems: "center", justifyContent: "center", gap: 7, padding: "0 13px", border: 0, borderRadius: 12, background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", boxShadow: "0 6px 15px rgba(37,99,235,.22)", fontSize: 12.5, fontWeight: 760, cursor: "pointer" },
-  toolButton: { display: "grid", flex: "0 0 auto", width: 40, height: 40, padding: 0, placeItems: "center", border: 0, borderRadius: 11, background: "transparent", color: "#52627a", cursor: "pointer" },
-  composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "#94a3b8", fontSize: 9.5, fontWeight: 600 },
+  loadEarlier: { alignSelf: "center", marginBottom: 4, padding: "7px 11px", border: "1px solid var(--cg-border, #d7e1ee)", borderRadius: 999, background: "var(--cg-surface, rgba(255,255,255,.88))", color: "var(--cg-muted, #52627a)", fontSize: 11.5, fontWeight: 700, cursor: "pointer" },
+  status: { display: "grid", margin: "auto", padding: 26, placeItems: "center", color: "var(--cg-muted, #64748b)", textAlign: "center" },
+  emptyIcon: { display: "grid", width: 48, height: 48, marginBottom: 12, placeItems: "center", border: "1px solid var(--cg-border, #d9e4f2)", borderRadius: 16, background: "var(--cg-surface, #fff)", boxShadow: "0 8px 22px var(--cg-shadow, rgba(30,64,175,.08))", color: "var(--cg-accent, #2563eb)" },
+  emptyTitle: { marginBottom: 4, color: "var(--cg-text, #1e293b)", fontSize: 14, fontWeight: 760 },
+  error: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, margin: "10px 12px 0", padding: "9px 11px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 24%, transparent)", borderRadius: 12, background: "color-mix(in srgb, var(--cg-danger, #ef4444) 8%, transparent)", color: "var(--cg-danger, #b42318)", fontSize: 12 },
+  retryButton: { padding: "4px 8px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 24%, transparent)", borderRadius: 8, background: "var(--cg-surface, #fff)", color: "var(--cg-danger, #be123c)", fontSize: 11, fontWeight: 700, cursor: "pointer" },
+  typing: { minHeight: 25, padding: "5px 16px 2px", background: "var(--cg-surface, #fff)", color: "var(--cg-muted, #64748b)", fontSize: 11.5 },
+  composer: { display: "flex", flexDirection: "column", gap: 8, padding: "9px 12px 11px", borderTop: "1px solid var(--cg-border, #e5ebf4)", background: "var(--cg-surface, #fff)" },
+  replyBanner: { display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "8px 10px", border: "1px solid var(--cg-border, #dbeafe)", borderRadius: 11, background: "var(--cg-subtle, #eff6ff)", color: "var(--cg-accent-hover, #1e40af)", fontSize: 11.5 },
+  cancelReply: { padding: "3px 7px", border: 0, borderRadius: 7, background: "transparent", color: "var(--cg-accent-hover, #1d4ed8)", fontSize: 11, fontWeight: 750, cursor: "pointer" },
+  composerRow: { display: "flex", alignItems: "center", gap: 5, minHeight: 50, padding: 4, border: "1px solid var(--cg-border, #d4deeb)", borderRadius: 16, background: "var(--cg-subtle, #f8fafc)", boxShadow: "0 4px 14px var(--cg-shadow, rgba(15,23,42,.04))" },
+  input: { minWidth: 0, height: 40, flex: 1, padding: "0 8px", border: 0, outline: 0, background: "transparent", color: "var(--cg-text, #172033)", fontSize: 13.5 },
+  sendButton: { display: "inline-flex", height: 40, alignItems: "center", justifyContent: "center", gap: 7, padding: "0 13px", border: 0, borderRadius: 12, background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", boxShadow: "0 6px 15px color-mix(in srgb, var(--cg-accent, #2563eb) 22%, transparent)", fontSize: 12.5, fontWeight: 760, cursor: "pointer" },
+  toolButton: { display: "grid", flex: "0 0 auto", width: 40, height: 40, padding: 0, placeItems: "center", border: 0, borderRadius: 11, background: "transparent", color: "var(--cg-muted, #52627a)", cursor: "pointer" },
+  composerFooter: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 3px", color: "var(--cg-muted, #94a3b8)", fontSize: 9.5, fontWeight: 600 },
 };
 
 const ROLE_BADGE_COLORS: Record<ChatGateParticipantRole, { bg: string; color: string; border: string }> = {
-  customer: { bg: "#eef2f7", color: "#475569", border: "#dbe2ec" },
-  merchant: { bg: "#e0f2fe", color: "#0369a1", border: "#bae6fd" },
-  admin: { bg: "#f3e8ff", color: "#7e22ce", border: "#e9d5ff" },
+  customer: { bg: "var(--cg-hover, #eef2f7)", color: "var(--cg-role-customer, #475569)", border: "var(--cg-border, #dbe2ec)" },
+  merchant: { bg: "var(--cg-hover, #e0f2fe)", color: "var(--cg-role-merchant, #0369a1)", border: "var(--cg-border, #bae6fd)" },
+  admin: { bg: "var(--cg-hover, #f3e8ff)", color: "var(--cg-role-admin, #7e22ce)", border: "var(--cg-border, #e9d5ff)" },
 };
 
 function roleLabel(role: ChatGateParticipantRole, overrides?: Partial<Record<ChatGateParticipantRole, string>>): string {
@@ -420,7 +421,7 @@ function DefaultMessage({
         {message.content && !(message.messageType === "voice" && message.content === "Voice message") ? (
           <div style={styles.messageText}>{message.content}</div>
         ) : null}
-        <div style={{ ...styles.messageMeta, ...(own ? { color: "#dbeafe" } : { color: "#64748b" }) }}>
+        <div style={{ ...styles.messageMeta, ...(own ? { color: "var(--cg-accent-text, #dbeafe)" } : { color: "var(--cg-muted, #64748b)" }) }}>
           <span>{formatTime(message.createdAt)}</span>
           {own ? <span>{message.read ? "Seen" : "Sent"}</span> : null}
         </div>
@@ -459,7 +460,7 @@ function DefaultMessage({
               <button className="cg-message-action" type="button" style={styles.messageAction} onClick={onEdit}>Edit</button>
             ) : null}
             {own ? (
-              <button className="cg-message-action" type="button" style={{ ...styles.messageAction, color: "#be123c" }} onClick={onDelete}>Delete</button>
+              <button className="cg-message-action" type="button" style={{ ...styles.messageAction, color: "var(--cg-danger, #be123c)" }} onClick={onDelete}>Delete</button>
             ) : null}
           </div>
         </details>
@@ -641,6 +642,7 @@ export function ChatGateConversation({
   return (
     <section
       data-chatgate-conversation
+      data-cg-scheme={theme?.colorScheme}
       className={className}
       style={{ ...styles.root, ...createChatGateThemeVariables(theme), ...style }}
       aria-label={title}
@@ -671,7 +673,7 @@ export function ChatGateConversation({
               aria-hidden="true"
               style={{
                 ...styles.presenceDot,
-                ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
+                ...(agentOnline ? { background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 14%, transparent)" } : {}),
               }}
             />
             {agentOnline ? "Online" : "Support"}
@@ -696,7 +698,7 @@ export function ChatGateConversation({
             title={agentOnline ? "Online" : "Support"}
             style={{
               ...styles.minimalDot,
-              ...(agentOnline ? { background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.14)" } : {}),
+              ...(agentOnline ? { background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 14%, transparent)" } : {}),
             }}
           />
         </header>
@@ -800,7 +802,7 @@ export function ChatGateConversation({
             <button
               className={recording ? "cg-tool-button cg-recording" : "cg-tool-button"}
               type="button"
-              style={{ ...styles.toolButton, ...(recording ? { background: "#fee2e2", color: "#b91c1c" } : {}) }}
+              style={{ ...styles.toolButton, ...(recording ? { background: "color-mix(in srgb, var(--cg-danger, #ef4444) 10%, transparent)", color: "var(--cg-danger, #b91c1c)" } : {}) }}
               disabled={state.sending && !recording}
               onClick={recording ? stopRecording : () => void startRecording()}
               aria-label={recording ? "Stop recording" : "Record voice message"}
@@ -831,8 +833,8 @@ export function ChatGateConversation({
         </div>
         <div className="cg-composer-footer" style={styles.composerFooter}>
           {recording ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "#b91c1c", fontWeight: 700 }}>
-              <span className="cg-recording-dot" aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: "#dc2626" }} />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 5, color: "var(--cg-danger, #b91c1c)", fontWeight: 700 }}>
+              <span className="cg-recording-dot" aria-hidden="true" style={{ width: 7, height: 7, borderRadius: 999, background: "var(--cg-danger, #dc2626)" }} />
               Recording voice message…
             </span>
           ) : (

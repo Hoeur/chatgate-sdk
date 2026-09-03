@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/react-native",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "React Native and Expo bindings for ChatGate.",
   "repository": {
     "type": "git",
@@ -31,13 +31,13 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "test": "npm run build && node --test test/react-native.test.mjs",
+    "test": "npm run build && node --test test/color-scheme.test.mjs test/react-native.test.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm test"
   },
   "license": "SEE LICENSE IN LICENSE",
   "peerDependencies": {
-    "@chatgate/core": "^0.6.4",
+    "@chatgate/core": "^0.7.0",
     "react": ">=18",
     "react-native": ">=0.74"
   },

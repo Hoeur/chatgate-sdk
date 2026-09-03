@@ -24,4 +24,4 @@ export {
   type ChatGateMessengerLabels,
   type ChatGateMessengerProps,
 } from "./messenger.js";
-export { type ChatGateTheme } from "./theme.js";
+export { createChatGateThemeVariables, type ChatGateTheme } from "./theme.js";

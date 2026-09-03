@@ -13,6 +13,7 @@ import {
   type ListRenderItem,
   type StyleProp,
   type ViewStyle,
+  useColorScheme,
 } from "react-native";
 import {
   resolveMessageRole,
@@ -147,7 +148,8 @@ export function ChatGateConversation({
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
   const playbackRef = useRef<ChatGateAudioController | null>(null);
 
-  const t = useMemo(() => resolveChatGateTheme(theme), [theme]);
+  const systemScheme = useColorScheme();
+  const t = useMemo(() => resolveChatGateTheme(theme, systemScheme === "dark" ? "dark" : "light"), [theme, systemScheme]);
   const styles = useMemo(() => createStyles(t), [t]);
   const selfId = client.session?.userId;
 
@@ -442,7 +444,13 @@ export function ChatGateConversation({
         keyExtractor={(message) => message.id}
         renderItem={renderMessage}
         contentContainerStyle={state.messages.length === 0 ? styles.emptyList : styles.list}
-        ListEmptyComponent={state.loading ? <ActivityIndicator color={t.accent} /> : <Text style={styles.emptyText}>{emptyState}</Text>}
+        ListEmptyComponent={state.loading ? <ActivityIndicator color={t.accent} /> : (
+          typeof emptyState === "string" ? (
+            <Text style={styles.emptyText}>{emptyState}</Text>
+          ) : (
+            <>{emptyState}</>
+          )
+        )}
         ListHeaderComponent={state.thread?.nextCursor ? (
           <Pressable disabled={state.loadingOlder} onPress={() => void controller.loadOlder()}>
             <Text style={styles.loadEarlier}>{state.loadingOlder ? "Loading…" : "Load earlier messages"}</Text>
@@ -657,7 +665,7 @@ function createStyles(t: ResolvedChatGateTheme) {
     sendButton: { width: 44, height: 44, alignItems: "center", justifyContent: "center", borderRadius: 22, backgroundColor: t.accent } as const,
     disabled: { opacity: 0.4 } as const,
     iconButton: { width: 40, height: 40, alignItems: "center", justifyContent: "center", borderRadius: 20, backgroundColor: "transparent" } as const,
-    error: { margin: 10, borderRadius: 10, padding: 10, backgroundColor: "#fef2f2" } as const,
+    error: { margin: 10, borderRadius: 10, padding: 10, backgroundColor: t.dangerSurface } as const,
     errorText: { color: t.danger } as const,
     loadEarlier: { padding: 8, color: t.accent, textAlign: "center" } as const,
 

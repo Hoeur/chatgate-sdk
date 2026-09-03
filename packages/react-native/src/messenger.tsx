@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   View,
+  useColorScheme,
 } from "react-native";
 import type {
   ChatGateBusinessUnit,
@@ -23,21 +24,51 @@ import {
 } from "./theme.js";
 import { useChatGateConversationList } from "./use-conversation-list.js";
 
+export interface ChatGateMessengerLabels {
+  conversations?: string;
+  businesses?: string;
+  searchPlaceholder?: string;
+  noConversations?: string;
+  noSearchResults?: string;
+  online?: string;
+  retry?: string;
+  loading?: string;
+  emptyPreview?: string;
+  businessStart?: string;
+  businessFallback?: string;
+}
+
+const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
+  conversations: "Conversations",
+  businesses: "Chat with a business",
+  searchPlaceholder: "Search conversations",
+  noConversations: "No conversations yet.",
+  noSearchResults: "No matches.",
+  online: "We're online",
+  retry: "tap to retry",
+  loading: "Loading conversations...",
+  emptyPreview: "Tap to start the conversation",
+  businessStart: "{type} · start a chat",
+  businessFallback: "Business",
+};
+
 export interface ChatGateMessengerProps
   extends Omit<ChatGateConversationProps, "onBack"> {
   showConversationList?: boolean;
+  showBusinessDirectory?: boolean;
   greeting?: string;
   /** Show the search field above the conversation list. Default true. */
   showSearch?: boolean;
+  labels?: ChatGateMessengerLabels;
 }
 
 function unitName(unit: ChatGateBusinessUnit | null | undefined, fallback: string): string {
   return unit?.name?.trim() || fallback;
 }
 
-function previewFor(conversation: ConversationModel): string {
+function previewFor(conversation: ConversationModel, emptyPreview = "Tap to start the conversation"): string {
   const message = conversation.lastMessage;
-  if (!message) return "Tap to start the conversation";
+  if (!message) return emptyPreview;
   if (message.messageType === "image") return "Photo";
   if (message.messageType === "voice") return "Voice message";
   return message.content?.trim() || message.fileName || "Attachment";
@@ -46,10 +77,12 @@ function previewFor(conversation: ConversationModel): string {
 function ConversationRow({
   conversation,
   theme,
+  labels,
   onPress,
 }: {
   conversation: ConversationModel;
   theme: ResolvedChatGateTheme;
+  labels: Required<ChatGateMessengerLabels>;
   onPress: () => void;
 }) {
   const name = unitName(conversation.businessUnit, "Company support");
@@ -69,7 +102,7 @@ function ConversationRow({
         </View>
         <View style={s.line}>
           <Text numberOfLines={1} style={[s.preview, unread && s.previewUnread]}>
-            {previewFor(conversation)}
+            {previewFor(conversation, labels.emptyPreview)}
           </Text>
           {unread ? (
             <View accessibilityLabel={`${unreadCount} unread messages`} style={s.unread}>
@@ -85,15 +118,21 @@ function ConversationRow({
 function BusinessUnitRow({
   unit,
   theme,
+  labels,
   disabled,
   onPress,
 }: {
   unit: ChatGateBusinessUnit;
   theme: ResolvedChatGateTheme;
+  labels: Required<ChatGateMessengerLabels>;
   disabled: boolean;
   onPress: () => void;
 }) {
   const name = unitName(unit, unit.externalId);
+  const preview = labels.businessStart.replace(
+    "{type}",
+    unit.type?.trim() || labels.businessFallback,
+  );
   const s = rowStyles(theme);
   return (
     <Pressable accessibilityRole="button" style={s.row} disabled={disabled} onPress={onPress}>
@@ -102,7 +141,7 @@ function BusinessUnitRow({
       </View>
       <View style={s.meta}>
         <Text numberOfLines={1} style={s.name}>{name}</Text>
-        <Text numberOfLines={1} style={s.preview}>{unit.type || "Business"} · start a chat</Text>
+        <Text numberOfLines={1} style={s.preview}>{preview}</Text>
       </View>
       <Text style={s.chevron}>›</Text>
     </Pressable>
@@ -116,11 +155,15 @@ function ChatGateConversationNavigator({
   theme,
   header = "full",
   showSearch = true,
+  showBusinessDirectory = true,
+  labels: labelOverrides,
   ...conversationProps
 }: Omit<ChatGateMessengerProps, "showConversationList" | "conversationId">) {
   const { controller, state } = useChatGateConversationList();
   const [query, setQuery] = useState("");
-  const c = useMemo(() => resolveChatGateTheme(theme), [theme]);
+  const labels = { ...DEFAULT_LABELS, ...labelOverrides };
+  const systemScheme = useColorScheme();
+  const c = useMemo(() => resolveChatGateTheme(theme, systemScheme === "dark" ? "dark" : "light"), [theme, systemScheme]);
   const styles = useMemo(() => navStyles(c), [c]);
 
   const selectedConversation = state.conversations.find(
@@ -139,7 +182,7 @@ function ChatGateConversationNavigator({
   const conversations = term
     ? state.conversations.filter((conversation) => {
         const name = unitName(conversation.businessUnit, "").toLowerCase();
-        return name.includes(term) || previewFor(conversation).toLowerCase().includes(term);
+        return name.includes(term) || previewFor(conversation, labels.emptyPreview).toLowerCase().includes(term);
       })
     : state.conversations;
   const businessUnits = term
@@ -162,8 +205,10 @@ function ChatGateConversationNavigator({
     );
   }
 
+  const visibleBusinessUnits = showBusinessDirectory ? businessUnits : [];
+
   const nothingToShow =
-    !state.loading && conversations.length === 0 && businessUnits.length === 0;
+    !state.loading && conversations.length === 0 && visibleBusinessUnits.length === 0;
 
   return (
     <View style={[styles.root, style]} accessibilityLabel={`${title} conversations`}>
@@ -175,7 +220,7 @@ function ChatGateConversationNavigator({
           </Text>
           <View style={styles.onlineRow}>
             <View style={styles.onlineDot} />
-            <Text style={styles.online}>We&apos;re online</Text>
+            <Text style={styles.online}>{labels.online}</Text>
           </View>
         </View>
       ) : header === "minimal" ? (
@@ -188,9 +233,9 @@ function ChatGateConversationNavigator({
         <View style={styles.searchWrap}>
           <SearchIcon size={15} color={c.muted} />
           <TextInput
-            accessibilityLabel="Search conversations"
+            accessibilityLabel={labels.searchPlaceholder}
             style={styles.search}
-            placeholder="Search conversations"
+            placeholder={labels.searchPlaceholder}
             placeholderTextColor={c.muted}
             value={query}
             onChangeText={setQuery}
@@ -202,38 +247,43 @@ function ChatGateConversationNavigator({
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
         {state.error ? (
           <Pressable accessibilityRole="button" style={styles.error} onPress={() => void controller.reload()}>
-            <Text style={styles.errorText}>{state.error.message} — tap to retry</Text>
+            <Text style={styles.errorText}>{state.error.message} — {labels.retry}</Text>
           </Pressable>
         ) : null}
 
-        {conversations.length > 0 ? <Text style={styles.sectionTitle}>Conversations</Text> : null}
+        {conversations.length > 0 ? <Text style={styles.sectionTitle}>{labels.conversations}</Text> : null}
         {conversations.map((conversation) => (
           <ConversationRow
             key={conversation.id}
             conversation={conversation}
             theme={c}
+            labels={labels}
             onPress={() => controller.selectConversation(conversation.id)}
           />
         ))}
 
-        {businessUnits.length > 0 ? (
-          <Text style={[styles.sectionTitle, styles.businessSection]}>Chat with a business</Text>
+        {visibleBusinessUnits.length > 0 ? (
+          <Text style={[styles.sectionTitle, styles.businessSection]}>{labels.businesses}</Text>
         ) : null}
-        {businessUnits.map((unit) => (
+        {visibleBusinessUnits.map((unit) => (
           <BusinessUnitRow
             key={unit.id}
             unit={unit}
             theme={c}
+            labels={labels}
             disabled={state.switching}
             onPress={() => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined)}
           />
         ))}
 
         {state.loading && state.conversations.length === 0 ? (
-          <ActivityIndicator color={c.accent} style={styles.loading} />
+          <View style={styles.loading}>
+            <ActivityIndicator color={c.accent} />
+            <Text style={styles.loadingText}>{labels.loading}</Text>
+          </View>
         ) : null}
         {nothingToShow ? (
-          <Text style={styles.empty}>{term ? "No matches." : "No conversations yet."}</Text>
+          <Text style={styles.empty}>{term ? labels.noSearchResults : labels.noConversations}</Text>
         ) : null}
       </ScrollView>
     </View>
@@ -242,6 +292,7 @@ function ChatGateConversationNavigator({
 
 export function ChatGateMessenger({
   showConversationList = true,
+  showBusinessDirectory = true,
   conversationId,
   greeting,
   ...props
@@ -249,7 +300,13 @@ export function ChatGateMessenger({
   if (!showConversationList || conversationId) {
     return <ChatGateConversation {...props} {...(conversationId ? { conversationId } : {})} />;
   }
-  return <ChatGateConversationNavigator {...props} {...(greeting ? { greeting } : {})} />;
+  return (
+    <ChatGateConversationNavigator
+      {...props}
+      {...(greeting ? { greeting } : {})}
+      showBusinessDirectory={showBusinessDirectory}
+    />
+  );
 }
 
 function navStyles(t: ResolvedChatGateTheme) {
@@ -269,9 +326,10 @@ function navStyles(t: ResolvedChatGateTheme) {
     bodyContent: { flexGrow: 1, padding: 14 } as const,
     sectionTitle: { marginBottom: 8, marginTop: 4, color: t.muted, fontSize: 11, fontWeight: "800", letterSpacing: 1.1, textTransform: "uppercase" } as const,
     businessSection: { marginTop: 18 } as const,
-    error: { marginBottom: 12, borderRadius: 10, padding: 10, backgroundColor: "#fef2f2" } as const,
+    error: { marginBottom: 12, borderRadius: 10, padding: 10, backgroundColor: t.dangerSurface } as const,
     errorText: { color: t.danger } as const,
-    loading: { flex: 1, marginVertical: 48 } as const,
+    loading: { flex: 1, marginVertical: 48, alignItems: "center", justifyContent: "center" } as const,
+    loadingText: { marginTop: 12, color: t.muted, fontSize: 13, textAlign: "center" } as const,
     empty: { flex: 1, marginVertical: 48, color: t.muted, textAlign: "center" } as const,
   };
 }

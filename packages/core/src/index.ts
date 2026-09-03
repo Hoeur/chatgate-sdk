@@ -25,4 +25,14 @@ export {
   type ChatGateSanitizeUrlOptions,
 } from "./urls.js";
 export { CALL_COMMENT_MAX_LENGTH, LIVE_REACTION_EMOJIS } from "./shared/constants.js";
+export {
+  CHATGATE_COLOR_SCHEMES,
+  CHATGATE_THEME_CSS_VARIABLES,
+  createChatGatePaletteVariables,
+  createChatGateSchemeCss,
+  resolveColorScheme,
+  type ChatGateColorScheme,
+  type ChatGatePalette,
+  type ChatGatePaletteKey,
+} from "./shared/palette.js";
 export type * from "./types.js";

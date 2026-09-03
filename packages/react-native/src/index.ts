@@ -1,4 +1,5 @@
 export { ChatGateProvider, type ChatGateProviderProps } from "./provider.js";
+export { ChatGate, type ChatGateProps } from "./chatgate.js";
 export {
   useChatGate,
   type ChatGateNativeContextValue,
@@ -19,6 +20,7 @@ export {
 export {
   ChatGateMessenger,
   type ChatGateMessengerProps,
+  type ChatGateMessengerLabels,
 } from "./messenger.js";
 export type {
   ChatGateAttachmentConstraints,
@@ -28,4 +30,8 @@ export type {
   ChatGatePushAdapter,
   ChatGatePushToken,
 } from "./types.js";
-export { type ChatGateTheme } from "./theme.js";
+export {
+  resolveChatGateTheme,
+  type ChatGateTheme,
+  type ResolvedChatGateTheme,
+} from "./theme.js";

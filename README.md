@@ -28,7 +28,7 @@ application server; every client receives only a short-lived visitor session.
 ## Working sample
 
 [`examples/nextjs`](./examples/nextjs) is a standalone consumer project using
-the local 0.5 packages before publication. It is configured for the live
+the local workspace packages before publication. It is configured for the live
 ChatGate publishable-key flow and exercises visitor session creation, history,
 text, image/file upload, browser voice recording, replies, reactions, typing,
 presence, read receipts, Socket.IO acknowledgement, and merchant replies.

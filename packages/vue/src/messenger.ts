@@ -6,6 +6,7 @@ import {
   type PropType,
   type VNodeChild,
 } from "vue";
+import { createChatGateSchemeCss } from "@chatgate/core";
 import type {
   ChatGateBusinessUnit,
   ChatGateConversation as ChatGateConversationModel,
@@ -15,6 +16,14 @@ import type {
 import { ChatGateConversation } from "./conversation.js";
 import { createChatGateThemeVariables, type ChatGateTheme } from "./theme.js";
 import { useChatGateConversationList } from "./use-conversation-list.js";
+
+/**
+ * The messenger root had no stylesheet of its own until dark mode arrived: its
+ * colours are all inline. `colorScheme: "auto"` needs a `prefers-color-scheme`
+ * block, which an inline style cannot express, so the component now injects one
+ * — scoped to its own `[data-chatgate-messenger]` attribute.
+ */
+const messengerCss = createChatGateSchemeCss("[data-chatgate-messenger]");
 
 /** Overridable copy for the conversation list, for localized apps. */
 export interface ChatGateMessengerLabels {
@@ -27,6 +36,8 @@ export interface ChatGateMessengerLabels {
   retry?: string;
   loading?: string;
   emptyPreview?: string;
+  businessStart?: string;
+  businessFallback?: string;
 }
 
 const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
@@ -39,6 +50,8 @@ const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
   retry: "Retry",
   loading: "Loading conversations...",
   emptyPreview: "Tap to start the conversation",
+  businessStart: "{type} · start a chat",
+  businessFallback: "Business",
 };
 
 /*
@@ -127,15 +140,20 @@ function conversationRow(
 
 function businessUnitRow(
   unit: ChatGateBusinessUnit,
+  labels: Required<ChatGateMessengerLabels>,
   disabled: boolean,
   onSelect: () => void,
 ): VNodeChild {
   const name = unitName(unit, unit.externalId);
+  const preview = labels.businessStart.replace(
+    "{type}",
+    unit.type?.trim() || labels.businessFallback,
+  );
   return h("button", { key: unit.id, type: "button", style: rowStyle, disabled, onClick: onSelect }, [
-    h("span", { "aria-hidden": "true", style: { ...avatarStyle, background: "color-mix(in srgb, var(--cg-accent, #2563eb) 14%, #fff)", color: "var(--cg-accent, #2563eb)" } }, name.charAt(0).toUpperCase()),
+    h("span", { "aria-hidden": "true", style: { ...avatarStyle, background: "color-mix(in srgb, var(--cg-accent, #2563eb) 14%, var(--cg-surface, #fff))", color: "var(--cg-accent, #2563eb)" } }, name.charAt(0).toUpperCase()),
     h("span", { style: { display: "flex", minWidth: 0, flex: 1, flexDirection: "column", gap: "3px" } }, [
       h("strong", { style: nameStyle }, name),
-      h("small", { style: previewStyle }, `${unit.type || "Business"} · start a chat`),
+      h("small", { style: previewStyle }, preview),
     ]),
     h("span", { "aria-hidden": "true", style: { color: "var(--cg-muted, #64748b)" } }, "›"),
   ]);
@@ -144,6 +162,7 @@ function businessUnitRow(
 export const chatGateMessengerProps = {
   conversationId: String,
   showConversationList: { type: Boolean, default: true },
+  showBusinessDirectory: { type: Boolean, default: true },
   showSearch: { type: Boolean, default: true },
   header: { type: String as PropType<"full" | "minimal" | "none">, default: "full" },
   title: { type: String, default: "Support" },
@@ -201,14 +220,13 @@ export const ChatGateMessenger = defineComponent({
         });
       }
 
-      const existingExternalIds = new Set(
-        state.value.conversations
-          .map((conversation) => conversation.businessUnit?.externalId)
-          .filter((externalId): externalId is string => Boolean(externalId)),
-      );
-      const availableBusinessUnits = state.value.businessUnits.filter(
-        (unit) => !existingExternalIds.has(unit.externalId),
-      );
+      const availableBusinessUnits = props.showBusinessDirectory
+        ? state.value.businessUnits.filter((unit) =>
+            !state.value.conversations.some(
+              (conversation) => conversation.businessUnit?.externalId === unit.externalId,
+            )
+          )
+        : [];
 
       const term = query.value.trim().toLowerCase();
       const conversations = term
@@ -225,9 +243,12 @@ export const ChatGateMessenger = defineComponent({
         : availableBusinessUnits;
 
       return h("section", {
+        "data-chatgate-messenger": "",
+        "data-cg-scheme": props.theme?.colorScheme,
         style: { ...rootStyle, ...createChatGateThemeVariables(props.theme) },
         "aria-label": `${props.title} conversations`,
       }, [
+        h("style", messengerCss),
         props.header === "none"
           ? null
           : props.header === "minimal"
@@ -236,7 +257,7 @@ export const ChatGateMessenger = defineComponent({
                 h("h2", { style: { margin: 0, fontSize: "20px" } }, props.title),
                 h("p", { style: { margin: "8px 0 0", color: "var(--cg-accent-text, #fff)", opacity: 0.85, fontSize: "13px", lineHeight: 1.5 } }, props.greeting ?? `Welcome to ${props.title}. Choose a conversation or start chatting with a business.`),
                 h("small", { style: { display: "inline-flex", alignItems: "center", gap: "6px", marginTop: "12px", color: "var(--cg-accent-text, #fff)", opacity: 0.92, fontWeight: 700 } }, [
-                  h("span", { "aria-hidden": "true", style: { width: "8px", height: "8px", borderRadius: "999px", background: "#4ade80", boxShadow: "0 0 0 3px rgba(74,222,128,.25)" } }),
+                  h("span", { "aria-hidden": "true", style: { width: "8px", height: "8px", borderRadius: "999px", background: "var(--cg-online, #4ade80)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #4ade80) 13%, transparent)" } }),
                   labels.online,
                 ]),
               ]),
@@ -254,11 +275,11 @@ export const ChatGateMessenger = defineComponent({
             ])
           : null,
         h("div", { style: bodyStyle, "aria-busy": state.value.loading || state.value.switching }, [
-          state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", background: "#fef2f2", color: "#b91c1c" } }, [state.value.error.message, h("button", { type: "button", onClick: () => void controller.reload() }, labels.retry)]) : null,
+          state.value.error ? h("div", { role: "alert", style: { marginBottom: "12px", padding: "10px", borderRadius: "10px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 20%, transparent)", background: "color-mix(in srgb, var(--cg-danger, #ef4444) 7%, transparent)", color: "var(--cg-danger, #b91c1c)" } }, [state.value.error.message, h("button", { type: "button", style: { marginLeft: "8px", border: 0, background: "transparent", color: "var(--cg-danger, #b91c1c)", fontWeight: 700, textDecoration: "underline" }, onClick: () => void controller.reload() }, labels.retry)]) : null,
           conversations.length > 0 ? h("p", { style: sectionStyle }, labels.conversations) : null,
           ...conversations.map((conversation) => conversationRow(conversation, labels, () => controller.selectConversation(conversation.id))),
           businessUnits.length > 0 ? h("p", { style: { ...sectionStyle, marginTop: "18px" } }, labels.businesses) : null,
-          ...businessUnits.map((unit) => businessUnitRow(unit, state.value.switching, () => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined))),
+          ...businessUnits.map((unit) => businessUnitRow(unit, labels, state.value.switching, () => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined))),
           !state.value.loading && conversations.length === 0 && businessUnits.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, term ? labels.noSearchResults : labels.noConversations) : null,
           state.value.loading && state.value.conversations.length === 0 ? h("div", { style: { display: "grid", minHeight: "160px", placeItems: "center", color: "var(--cg-muted, #64748b)" } }, labels.loading) : null,
         ]),

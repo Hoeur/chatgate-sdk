@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, type CSSProperties } from "react";
+import { createChatGateSchemeCss } from "@chatgate/core";
 import type {
   ChatGateBusinessUnit,
   ChatGateConversation,
@@ -25,12 +26,17 @@ export interface ChatGateMessengerLabels {
   selectConversation?: string;
   online?: string;
   retry?: string;
+  loading?: string;
+  emptyPreview?: string;
+  businessStart?: string;
+  businessFallback?: string;
 }
 
 export interface ChatGateMessengerProps
   extends Omit<ChatGateConversationProps, "onBack" | "theme"> {
   showConversationList?: boolean;
   showBusinessDirectory?: boolean;
+  showSearch?: boolean;
   greeting?: string;
   sidebarWidth?: number | string;
   labels?: ChatGateMessengerLabels;
@@ -46,6 +52,10 @@ const DEFAULT_LABELS: Required<ChatGateMessengerLabels> = {
   selectConversation: "Select a conversation to see its full message history.",
   online: "We're online",
   retry: "Retry",
+  loading: "Loading conversations...",
+  emptyPreview: "Tap to start the conversation",
+  businessStart: "{type} · start a chat",
+  businessFallback: "Business",
 };
 
 const messengerCss = `
@@ -76,7 +86,7 @@ const messengerCss = `
     [data-chatgate-messenger] .cg-messenger-sidebar { width: 100% !important; border-right: 0 !important; }
     [data-chatgate-messenger] .cg-chat-header button[aria-label="Back to conversations"] { display: grid !important; }
   }
-`;
+` + createChatGateSchemeCss("[data-chatgate-messenger]");
 
 const styles: Record<string, CSSProperties> = {
   root: {
@@ -92,7 +102,7 @@ const styles: Record<string, CSSProperties> = {
     border: "1px solid var(--cg-border, #d6e0ee)",
     borderRadius: "var(--cg-radius, 20px)",
     background: "var(--cg-surface, #fff)",
-    boxShadow: "0 18px 48px rgba(30, 64, 175, .10)",
+    boxShadow: "0 18px 48px var(--cg-shadow, rgba(30, 64, 175, .10))",
     color: "var(--cg-text, #14213d)",
     fontFamily: "var(--cg-font, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif)",
   },
@@ -124,7 +134,7 @@ const styles: Record<string, CSSProperties> = {
   title: { margin: 0, fontSize: 19, fontWeight: 800, lineHeight: 1.25 },
   greeting: { margin: "6px 0 0", color: "var(--cg-muted, #64748b)", fontSize: 12, lineHeight: 1.45 },
   online: { display: "inline-flex", alignItems: "center", gap: 6, color: "var(--cg-muted, #64748b)", fontSize: 10.5, fontWeight: 750, whiteSpace: "nowrap" },
-  onlineDot: { width: 7, height: 7, borderRadius: 999, background: "#22c55e", boxShadow: "0 0 0 3px rgba(34,197,94,.13)" },
+  onlineDot: { width: 7, height: 7, borderRadius: 999, background: "var(--cg-online, #22c55e)", boxShadow: "0 0 0 3px color-mix(in srgb, var(--cg-online, #22c55e) 13%, transparent)" },
   searchWrap: { position: "relative", marginTop: 15 },
   searchIcon: { position: "absolute", top: "50%", left: 12, color: "var(--cg-muted, #64748b)", transform: "translateY(-50%)", pointerEvents: "none" },
   search: { width: "100%", height: 40, padding: "0 12px 0 36px", border: "1px solid var(--cg-border, #dce5f1)", borderRadius: 12, outline: 0, background: "var(--cg-canvas, #f7f9fc)", color: "var(--cg-text, #14213d)", fontSize: 12.5 },
@@ -143,12 +153,12 @@ const styles: Record<string, CSSProperties> = {
   rowBottom: { display: "flex", minWidth: 0, alignItems: "center", justifyContent: "space-between", gap: 8 },
   rowDescription: { overflow: "hidden", color: "var(--cg-muted, #64748b)", fontSize: 11.5, textOverflow: "ellipsis", whiteSpace: "nowrap" },
   unread: { display: "grid", minWidth: 22, height: 22, padding: "0 5px", placeItems: "center", borderRadius: 999, background: "var(--cg-accent, #2563eb)", color: "var(--cg-accent-text, #fff)", fontSize: 9.5, fontWeight: 800 },
-  error: { marginBottom: 12, padding: "10px 12px", border: "1px solid #fecaca", borderRadius: 12, background: "#fef2f2", color: "#b91c1c", fontSize: 12 },
-  retry: { marginLeft: 8, border: 0, background: "transparent", color: "#b91c1c", fontWeight: 800, textDecoration: "underline", cursor: "pointer" },
+  error: { marginBottom: 12, padding: "10px 12px", border: "1px solid color-mix(in srgb, var(--cg-danger, #ef4444) 28%, transparent)", borderRadius: 12, background: "color-mix(in srgb, var(--cg-danger, #ef4444) 7%, transparent)", color: "var(--cg-danger, #b91c1c)", fontSize: 12 },
+  retry: { marginLeft: 8, border: 0, background: "transparent", color: "var(--cg-danger, #b91c1c)", fontWeight: 800, textDecoration: "underline", cursor: "pointer" },
   empty: { display: "grid", minHeight: 120, placeItems: "center", padding: 18, color: "var(--cg-muted, #64748b)", fontSize: 12.5, lineHeight: 1.5, textAlign: "center" },
   detail: { display: "flex", minWidth: 0, flex: 1, background: "var(--cg-surface, #fff)" },
   detailEmpty: { display: "grid", width: "100%", placeItems: "center", padding: 32, background: "var(--cg-canvas, #f7f9fc)", color: "var(--cg-muted, #64748b)", textAlign: "center" },
-  detailEmptyIcon: { display: "grid", width: 58, height: 58, margin: "0 auto 15px", placeItems: "center", border: "1px solid var(--cg-border, #dce5f1)", borderRadius: 18, background: "var(--cg-surface, #fff)", color: "var(--cg-accent, #2563eb)", boxShadow: "0 10px 26px rgba(30,64,175,.08)" },
+  detailEmptyIcon: { display: "grid", width: 58, height: 58, margin: "0 auto 15px", placeItems: "center", border: "1px solid var(--cg-border, #dce5f1)", borderRadius: 18, background: "var(--cg-surface, #fff)", color: "var(--cg-accent, #2563eb)", boxShadow: "0 10px 26px var(--cg-shadow, rgba(30,64,175,.08))" },
   detailEmptyTitle: { display: "block", color: "var(--cg-text, #14213d)", fontSize: 15, fontWeight: 780 },
   detailEmptyText: { display: "block", maxWidth: 330, marginTop: 6, fontSize: 12.5, lineHeight: 1.55 },
 };
@@ -179,10 +189,13 @@ function messagePreview(message: ChatGateMessage | null | undefined, fallback: s
   return "Attachment";
 }
 
-function conversationPreview(conversation: ChatGateConversation): string {
+function conversationPreview(
+  conversation: ChatGateConversation,
+  emptyPreview: string,
+): string {
   return messagePreview(
     conversation.lastMessage,
-    conversation.subject?.trim() || `${conversation.messageCount ?? 0} messages`,
+    conversation.subject?.trim() || emptyPreview,
   );
 }
 
@@ -198,10 +211,12 @@ function shortDate(value: string): string {
 
 function ConversationRow({
   conversation,
+  labels,
   selected,
   onSelect,
 }: {
   conversation: ChatGateConversation;
+  labels: Required<ChatGateMessengerLabels>;
   selected: boolean;
   onSelect: () => void;
 }) {
@@ -222,7 +237,7 @@ function ConversationRow({
           <time style={styles.rowTime} dateTime={conversation.lastMessageAt}>{shortDate(conversation.lastMessageAt)}</time>
         </span>
         <span style={styles.rowBottom}>
-          <span style={styles.rowDescription}>{conversationPreview(conversation)}</span>
+          <span style={styles.rowDescription}>{conversationPreview(conversation, labels.emptyPreview)}</span>
           {unreadCount > 0 ? (
             <span style={styles.unread} aria-label={`${unreadCount} unread messages`}>
               {unreadCount > 99 ? "99+" : unreadCount}
@@ -236,20 +251,26 @@ function ConversationRow({
 
 function BusinessUnitRow({
   unit,
+  labels,
   disabled,
   onSelect,
 }: {
   unit: ChatGateBusinessUnit;
+  labels: Required<ChatGateMessengerLabels>;
   disabled: boolean;
   onSelect: () => void;
 }) {
   const name = unitName(unit, unit.externalId);
+  const preview = labels.businessStart.replace(
+    "{type}",
+    unit.type?.trim() || labels.businessFallback,
+  );
   return (
     <button type="button" className="cg-messenger-row" style={styles.row} disabled={disabled} onClick={onSelect}>
       <span aria-hidden="true" style={styles.avatar}>{name.charAt(0).toUpperCase()}</span>
       <span style={styles.rowMeta}>
         <span style={styles.rowName}>{name}</span>
-        <span style={styles.rowDescription}>{`${unit.type?.trim() || "Business"} support`}</span>
+        <span style={styles.rowDescription}>{preview}</span>
       </span>
       <span aria-hidden="true">›</span>
     </button>
@@ -265,6 +286,7 @@ function ChatGateConversationNavigator({
   sidebarWidth = 320,
   labels: labelOverrides,
   showBusinessDirectory = true,
+  showSearch = true,
   header = "full",
   ...conversationProps
 }: Omit<ChatGateMessengerProps, "showConversationList" | "conversationId">) {
@@ -289,9 +311,9 @@ function ChatGateConversationNavigator({
     return state.conversations.filter((conversation) => [
       unitName(conversation.businessUnit, "Company support"),
       conversation.subject ?? "",
-      conversationPreview(conversation),
+      conversationPreview(conversation, labels.emptyPreview),
     ].some((value) => value.toLocaleLowerCase().includes(query)));
-  }, [search, state.conversations]);
+  }, [search, state.conversations, labels.emptyPreview]);
   const rootVariables = createChatGateThemeVariables(theme);
   rootVariables["--cg-sidebar-width"] = typeof sidebarWidth === "number"
     ? `${sidebarWidth}px`
@@ -314,6 +336,7 @@ function ChatGateConversationNavigator({
   return (
     <section
       data-chatgate-messenger=""
+      data-cg-scheme={theme?.colorScheme}
       data-chatgate-has-selection={state.selectedConversationId ? "true" : "false"}
       className={className}
       style={{ ...styles.root, ...rootVariables, ...style }}
@@ -330,16 +353,16 @@ function ChatGateConversationNavigator({
               </div>
               <span style={styles.online}><span aria-hidden="true" style={styles.onlineDot} />{labels.online}</span>
             </div>
-            {searchField}
+            {showSearch ? searchField : null}
           </header>
         ) : header === "minimal" ? (
           <header style={styles.sidebarHeaderMinimal}>
             <h2 style={styles.titleMinimal}>{title}</h2>
-            {searchField}
+            {showSearch ? searchField : null}
           </header>
-        ) : (
+        ) : showSearch ? (
           <div style={styles.searchOnly}>{searchField}</div>
-        )}
+        ) : null}
         <div style={styles.body} aria-busy={state.loading || state.switching}>
           {state.error ? (
             <div role="alert" style={styles.error}>
@@ -357,6 +380,7 @@ function ChatGateConversationNavigator({
                 <ConversationRow
                   key={conversation.id}
                   conversation={conversation}
+                  labels={labels}
                   selected={conversation.id === state.selectedConversationId}
                   onSelect={() => controller.selectConversation(conversation.id)}
                 />
@@ -364,7 +388,7 @@ function ChatGateConversationNavigator({
             </div>
           ) : (
             <div style={styles.empty}>
-              {state.loading ? "Loading conversations..." : search ? labels.noSearchResults : labels.noConversations}
+              {state.loading ? labels.loading : search ? labels.noSearchResults : labels.noConversations}
             </div>
           )}
           {availableBusinessUnits.length > 0 ? (
@@ -375,6 +399,7 @@ function ChatGateConversationNavigator({
                   <BusinessUnitRow
                     key={unit.id}
                     unit={unit}
+                    labels={labels}
                     disabled={state.switching}
                     onSelect={() => void controller.selectBusinessUnit(unit.externalId).catch(() => undefined)}
                   />

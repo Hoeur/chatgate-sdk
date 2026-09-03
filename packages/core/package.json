@@ -1,6 +1,6 @@
 {
   "name": "@chatgate/core",
-  "version": "0.6.4",
+  "version": "0.7.0",
   "description": "Framework-independent ChatGate client for web, React Native, Next.js, Vue, and other JavaScript runtimes.",
   "repository": {
     "type": "git",
@@ -31,7 +31,7 @@
   "scripts": {
     "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "npm run clean && tsc -p tsconfig.json",
-    "test": "npm run build && node --test test/client.test.mjs test/roles.test.mjs test/urls.test.mjs",
+    "test": "npm run build && node --test test/client.test.mjs test/palette.test.mjs test/roles.test.mjs test/urls.test.mjs",
     "test:e2e": "npm run build && node test/live-e2e.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "prepack": "npm test"
